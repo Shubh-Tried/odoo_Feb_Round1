@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Maintenance Logs{% endblock %}
+
+{% block content %}
+<section id="content-maintenance" class="page-section active">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Maintenance Logs</h1>
+            <p>Track repairs, preventive maintenance, and service scheduling.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-2">
+        <!-- Log Entry Form -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Log Service Entry</h3>
+            </div>
+            <div class="card-body">
+                <form class="form-layout" onsubmit="submitMaintenanceLog(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Vehicle</label>
+                            <select class="form-control" id="maint-vehicle-select">
+                                <option value="" disabled selected>-- Loading vehicles... --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Service Date</label>
+                            <input type="date" class="form-control" id="maint-date">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Service Type</label>
+                            <select class="form-control" id="maint-type">
+                                <option>Preventive Maintenance (PM)</option>
+                                <option>Engine Repair</option>
+                                <option>Tire Replacement</option>
+                                <option>Brake Service</option>
+                                <option>Oil Change</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Cost ($)</label>
+                            <input type="number" class="form-control" id="maint-cost" placeholder="0.00" min="0"
+                                step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Technician Notes / Description</label>
+                        <textarea class="form-control" id="maint-description" rows="3"
+                            placeholder="Describe the issue and parts replaced..." required></textarea>
+                    </div>
+                    <div id="maint-error"
+                        style="display:none; padding:0.75rem; border-radius:var(--radius-md); background:rgba(239,68,68,0.1); color:#EF4444; font-size:0.85rem;">
+                    </div>
+                    <div id="maint-success"
+                        style="display:none; padding:0.75rem; border-radius:var(--radius-md); background:rgba(16,185,129,0.1); color:#10B981; font-size:0.85rem;">
+                    </div>
+                    <div class="text-right mt-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Log Entry
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Service History -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Service History</h3>
+                <button class="btn-ghost" style="padding:0;" onclick="loadMaintenanceLogs()">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+            <div id="maintenance-history">
+                <div class="empty-state" style="padding:2rem; text-align:center; color:var(--text-muted);">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Loading logs...
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Set today's date
+        document.getElementById('maint-date').valueAsDate = new Date();
+        loadMaintenanceVehicles();
+        loadMaintenanceLogs();
+        setActiveNavLink('maintenance');
+    });
+
+    function loadMaintenanceVehicles() {
+        fetch('/api/vehicles')
+            .then(r => r.json())
+            .then(vehicles => {
+                const sel = document.getElementById('maint-vehicle-select');
+                if (!vehicles.length) {
+                    sel.innerHTML = '<option value="" disabled>No vehicles registered</option>';
+                    return;
+                }
+                sel.innerHTML = '<option value="" disabled selected>-- Select vehicle --</option>' +
+                    vehicles.map(v => `<option value="${v.id}">${v.vehicle_id} — ${v.make} ${v.model} (${v.status})</option>`).join('');
+            });
+    }
+
+    function loadMaintenanceLogs() {
+        fetch('/api/maintenance')
+            .then(r => r.json())
+            .then(logs => {
+                const container = document.getElementById('maintenance-history');
+                if (!logs.length) {
+                    container.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-muted);"><i class="fa-solid fa-clipboard-list" style="font-size:2rem;margin-bottom:0.5rem;"></i><p>No service records yet.</p></div>';
+                    return;
+                }
+                container.innerHTML = '<ul style="padding:0; margin:0; list-style:none;">' +
+                    logs.map(l => `
+                    <li style="padding:1rem 1.2rem; border-bottom:1px solid var(--border-light);">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <strong>${l.vehicle_code}</strong> <span class="text-muted" style="font-size:0.8rem;">— ${l.service_date}</span>
+                                <div style="font-size:0.85rem; margin-top:0.25rem;">${l.description}</div>
+                            </div>
+                            <span class="badge badge-warning" style="white-space:nowrap; margin-left:1rem;">$${Number(l.cost).toFixed(2)}</span>
+                        </div>
+                    </li>
+                `).join('') + '</ul>';
+            })
+            .catch(() => {
+                document.getElementById('maintenance-history').innerHTML =
+                    '<div style="padding:1.5rem; text-align:center; color:var(--text-muted);">Could not load logs.</div>';
+            });
+    }
+
+    function submitMaintenanceLog(e) {
+        e.preventDefault();
+        const vehicleDbId = document.getElementById('maint-vehicle-select').value;
+        const type = document.getElementById('maint-type').value;
+        const desc = document.getElementById('maint-description').value;
+        const cost = document.getElementById('maint-cost').value;
+
+        const errEl = document.getElementById('maint-error');
+        const okEl = document.getElementById('maint-success');
+        errEl.style.display = 'none';
+        okEl.style.display = 'none';
+
+        if (!vehicleDbId) {
+            errEl.textContent = 'Please select a vehicle.';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        fetch('/api/maintenance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                vehicle_db_id: parseInt(vehicleDbId),
+                description: `[${type}] ${desc}`,
+                cost: parseFloat(cost)
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    okEl.textContent = 'Maintenance log saved successfully!';
+                    okEl.style.display = 'block';
+                    e.target.reset();
+                    document.getElementById('maint-date').valueAsDate = new Date();
+                    loadMaintenanceLogs();
+                } else {
+                    errEl.textContent = data.error || 'Failed to save.';
+                    errEl.style.display = 'block';
+                }
+            });
+    }
+</script>
+{% endblock %}

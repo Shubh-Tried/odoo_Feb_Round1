@@ -1,20 +1,53 @@
 {% extends "base.html" %}
-{% block title %}Analytics{% endblock %}
+{% block title %}Analytics & Reports{% endblock %}
 
 {% block content %}
-<h1>Analytics</h1>
+<section id="content-analytics" class="page-section active">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Analytics &amp; Reporting</h1>
+            <p>Deep-dive metrics into fleet ROI, efficiency, and growth.</p>
+        </div>
+        <div class="page-actions">
+            <button class="btn btn-outline" onclick="window.print()">
+                <i class="fa-solid fa-file-pdf"></i> Export PDF
+            </button>
+        </div>
+    </div>
 
-<div class="chart-container">
-    <canvas id="fuelChart"></canvas>
-</div>
+    <div class="grid grid-2 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3>Fuel Efficiency Trends (Avg MPG)</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="fuelEfficiencyChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h3>Vehicle ROI by Class</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="roiChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
 
-<div class="chart-container">
-    <canvas id="roiChart"></canvas>
-</div>
-
+{% block page_scripts %}
 <script>
-const fuelData = {{ fuel_data | tojson }};
-const roiData = {{ roi_data | tojson }};
-</script>
+    const fuelData = {{ fuel_data | tojson }};
+    const roiData = {{ roi_data | tojson }};
 
+    document.addEventListener('DOMContentLoaded', () => {
+        initAnalyticsCharts();
+        setActiveNavLink('analytics');
+    });
+</script>
 {% endblock %}

@@ -1,7 +1,83 @@
-<aside class="sidebar">
-    <h2>FleetFlow</h2>
-    <ul>
-        <li><a href="/dashboard">Dashboard</a></li>
-        <li><a href="/analytics">Analytics</a></li>
-    </ul>
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-brand">
+            <i class="fa-solid fa-truck-fast"></i>
+            <span>FleetFlow</span>
+        </div>
+        <button class="btn-sidebar-close" onclick="toggleSidebar()">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <div class="sidebar-nav">
+        <ul class="nav-list">
+            <li class="nav-label" data-section="main">Main</li>
+            <li class="nav-item" data-roles="admin,manager,dispatcher,safety,finance">
+                <a href="/dashboard" class="nav-link" data-page="dashboard">
+                    <i class="fa-solid fa-border-all"></i>
+                    <span>Command Center</span>
+                </a>
+            </li>
+            <li class="nav-item" data-roles="manager,dispatcher">
+                <a href="/vehicles" class="nav-link" data-page="vehicles">
+                    <i class="fa-solid fa-truck"></i>
+                    <span>Vehicle Registry</span>
+                </a>
+            </li>
+            <li class="nav-item" data-roles="manager,dispatcher">
+                <a href="/dispatch" class="nav-link" data-page="dispatch">
+                    <i class="fa-solid fa-route"></i>
+                    <span>Trip Dispatcher</span>
+                </a>
+            </li>
+
+            <li class="nav-label" data-section="operations">Operations</li>
+            <li class="nav-item" data-roles="manager,safety">
+                <a href="/maintenance" class="nav-link" data-page="maintenance">
+                    <i class="fa-solid fa-wrench"></i>
+                    <span>Maintenance Logs</span>
+                </a>
+            </li>
+            <li class="nav-item" data-roles="admin,manager,finance">
+                <a href="/expenses" class="nav-link" data-page="expenses">
+                    <i class="fa-solid fa-gas-pump"></i>
+                    <span>Expense &amp; Fuel</span>
+                </a>
+            </li>
+            <li class="nav-item" data-roles="manager,safety">
+                <a href="/drivers" class="nav-link" data-page="drivers">
+                    <i class="fa-solid fa-id-card"></i>
+                    <span>Driver Performance</span>
+                </a>
+            </li>
+
+            <li class="nav-label" data-section="insights">Insights</li>
+            <li class="nav-item" data-roles="admin,manager,finance">
+                <a href="/analytics" class="nav-link" data-page="analytics">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Analytics &amp; Reports</span>
+                </a>
+            </li>
+
+            <li class="nav-label" data-section="admin">Administration</li>
+            <li class="nav-item" data-roles="admin,manager">
+                <a href="/users" class="nav-link" data-page="users">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span>User Management</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="sidebar-footer">
+        <img src="https://i.pravatar.cc/150?img=11" alt="User" class="user-avatar" id="sidebar-avatar">
+        <div class="user-details">
+            <h4 id="sidebar-user-name">Loading...</h4>
+            <p id="sidebar-user-role">--</p>
+        </div>
+        <button class="btn-logout" title="Sign Out" onclick="logout()">
+            <i class="fa-solid fa-power-off"></i>
+        </button>
+    </div>
 </aside>

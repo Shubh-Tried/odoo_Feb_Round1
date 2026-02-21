@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - FleetFlow</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body>
+
+<div class="login-card">
+    <h2>Login</h2>
+    <form action="/dashboard" method="get">
+        <input type="email" placeholder="Email">
+        <input type="password" placeholder="Password">
+        <button type="submit">Login</button>
+    </form>
+</div>
+
+</body>
+</html>

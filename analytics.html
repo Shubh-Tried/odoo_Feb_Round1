@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<h1>Analytics</h1>
+
+<div class="chart-container">
+    <canvas id="fuelChart"></canvas>
+</div>
+
+<div class="chart-container">
+    <canvas id="roiChart"></canvas>
+</div>
+
+<script>
+const fuelData = {{ fuel_data | tojson }};
+const roiData = {{ roi_data | tojson }};
+</script>
+
+{% endblock %}

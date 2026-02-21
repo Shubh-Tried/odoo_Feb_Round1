@@ -4,22 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FleetFlow - Modular Fleet & Logistics Management</title>
+    <title>FleetFlow - Sign In</title>
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
 </head>
 
 <body>
     <div id="app">
-        <!-- =========================================================
-             LOGIN VIEW
-             ========================================================= -->
+        <!-- Login View -->
         <div id="view-login" class="view active">
             <div class="login-view">
                 <div class="login-left">
@@ -31,32 +27,19 @@
                             </div>
                             <p>Sign in to your account</p>
                         </div>
-                        <form class="login-form" onsubmit="login(event)">
+                        <form class="login-form" onsubmit="loginFromDB(event)">
                             <div class="form-group">
                                 <label>Email Address</label>
                                 <div class="input-icon-wrapper">
                                     <i class="fa-regular fa-envelope"></i>
-                                    <input type="email" placeholder="name@company.com" value="admin@fleetflow.com"
-                                        required>
+                                    <input type="email" id="login-email" placeholder="name@company.com" required>
                                 </div>
                             </div>
                             <div class="form-group">
                                 <label>Password</label>
                                 <div class="input-icon-wrapper">
                                     <i class="fa-solid fa-lock"></i>
-                                    <input type="password" placeholder="••••••••" value="password" required>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Role</label>
-                                <div class="input-icon-wrapper">
-                                    <i class="fa-solid fa-id-badge"></i>
-                                    <select id="role-select" required>
-                                        <option value="manager" selected>Manager</option>
-                                        <option value="dispatcher">Dispatcher</option>
-                                        <option value="safety">Safety Officer</option>
-                                        <option value="finance">Financial Analyst</option>
-                                    </select>
+                                    <input type="password" id="login-password" placeholder="••••••••" required>
                                 </div>
                             </div>
                             <div class="login-options">
@@ -68,7 +51,16 @@
                             <button type="submit" class="btn btn-primary btn-block">
                                 Sign In <i class="fa-solid fa-arrow-right"></i>
                             </button>
+                            <div id="login-error"
+                                style="display:none; margin-top:1rem; padding:0.75rem 1rem; border-radius:var(--radius-md); background:rgba(239,68,68,0.1); color:#EF4444; font-size:0.85rem; text-align:center;">
+                            </div>
                         </form>
+                        <div class="login-signup-prompt"
+                            style="text-align:center; margin-top:1.5rem; font-size:0.9rem; color:var(--text-muted);">
+                            Don't have an account?
+                            <a href="#" onclick="openSignupModal(); return false;"
+                                style="color:var(--primary); font-weight:600; text-decoration:none;">Create Account</a>
+                        </div>
                     </div>
                 </div>
                 <!-- Right Side Graphic -->
@@ -80,11 +72,11 @@
                         <div class="glass-stats">
                             <div class="glass-stat">
                                 <span>Active Fleet</span>
-                                <h3>1,204</h3>
+                                <h3 id="hero-fleet-count">—</h3>
                             </div>
                             <div class="glass-stat">
-                                <span>Daily Trips</span>
-                                <h3>540+</h3>
+                                <span>Active Drivers</span>
+                                <h3 id="hero-driver-count">—</h3>
                             </div>
                         </div>
                     </div>
@@ -92,1099 +84,79 @@
             </div>
         </div>
 
-        <!-- =========================================================
-             MAIN APPLICATION LAYOUT
-             ========================================================= -->
-        <div id="view-main" class="view">
-            <div class="app-layout">
-
-                <!-- SIDEBAR -->
-                <aside class="sidebar" id="sidebar">
-                    <div class="sidebar-header">
-                        <div class="sidebar-brand">
-                            <i class="fa-solid fa-truck-fast"></i>
-                            <span>FleetFlow</span>
-                        </div>
-                        <button class="btn-sidebar-close" onclick="toggleSidebar()">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-
-                    <div class="sidebar-nav">
-                        <ul class="nav-list">
-                            <li class="nav-label" data-section="main">Main</li>
-                            <li class="nav-item" data-roles="manager,dispatcher,safety,finance">
-                                <a href="#" class="nav-link active" data-page="dashboard"
-                                    onclick="navigateTo('dashboard')">
-                                    <i class="fa-solid fa-border-all"></i>
-                                    <span>Command Center</span>
-                                </a>
-                            </li>
-                            <li class="nav-item" data-roles="manager,dispatcher">
-                                <a href="#" class="nav-link" data-page="vehicles" onclick="navigateTo('vehicles')">
-                                    <i class="fa-solid fa-truck"></i>
-                                    <span>Vehicle Registry</span>
-                                </a>
-                            </li>
-                            <li class="nav-item" data-roles="manager,dispatcher">
-                                <a href="#" class="nav-link" data-page="dispatch" onclick="navigateTo('dispatch')">
-                                    <i class="fa-solid fa-route"></i>
-                                    <span>Trip Dispatcher</span>
-                                </a>
-                            </li>
-
-                            <li class="nav-label" data-section="operations">Operations</li>
-                            <li class="nav-item" data-roles="manager,safety">
-                                <a href="#" class="nav-link" data-page="maintenance"
-                                    onclick="navigateTo('maintenance')">
-                                    <i class="fa-solid fa-wrench"></i>
-                                    <span>Maintenance Logs</span>
-                                </a>
-                            </li>
-                            <li class="nav-item" data-roles="manager,finance">
-                                <a href="#" class="nav-link" data-page="expenses" onclick="navigateTo('expenses')">
-                                    <i class="fa-solid fa-gas-pump"></i>
-                                    <span>Expense & Fuel</span>
-                                </a>
-                            </li>
-                            <li class="nav-item" data-roles="manager,safety">
-                                <a href="#" class="nav-link" data-page="drivers" onclick="navigateTo('drivers')">
-                                    <i class="fa-solid fa-id-card"></i>
-                                    <span>Driver Performance</span>
-                                </a>
-                            </li>
-
-                            <li class="nav-label" data-section="insights">Insights</li>
-                            <li class="nav-item" data-roles="manager,finance">
-                                <a href="#" class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">
-                                    <i class="fa-solid fa-chart-line"></i>
-                                    <span>Analytics & Reports</span>
-                                </a>
-                            </li>
-
-                            <li class="nav-label" data-section="admin">Administration</li>
-                            <li class="nav-item" data-roles="manager">
-                                <a href="#" class="nav-link" data-page="users" onclick="navigateTo('users')">
-                                    <i class="fa-solid fa-users-gear"></i>
-                                    <span>User Management</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="sidebar-footer">
-                        <img src="https://i.pravatar.cc/150?img=11" alt="User" class="user-avatar" id="sidebar-avatar">
-                        <div class="user-details">
-                            <h4 id="sidebar-user-name">Jane Doe</h4>
-                            <p id="sidebar-user-role">Operations Manager</p>
-                        </div>
-                        <button class="btn-logout" title="Sign Out" onclick="logout()">
-                            <i class="fa-solid fa-power-off"></i>
-                        </button>
-                    </div>
-                </aside>
-
-                <!-- MAIN WRAPPER -->
-                <div class="main-wrapper">
-
-                    <!-- TOPBAR -->
-                    <header class="topbar">
-                        <div class="topbar-left">
-                            <button class="btn-toggle-sidebar" onclick="toggleSidebar()">
-                                <i class="fa-solid fa-bars"></i>
-                            </button>
-                            <div class="search-bar">
-                                <i class="fa-solid fa-magnifying-glass"></i>
-                                <input type="text" placeholder="Search vehicles, trips or drivers...">
-                            </div>
-                        </div>
-                        <div class="topbar-right">
-                            <button class="btn-icon" onclick="navigateTo('dispatch')" title="New Dispatch">
-                                <i class="fa-solid fa-plus"></i>
-                            </button>
-
-                            <!-- Notification Button + Dropdown -->
-                            <div class="dropdown-wrapper" id="notif-wrapper">
-                                <button class="btn-icon" onclick="toggleDropdown('notif-dropdown', event)"
-                                    title="Notifications">
-                                    <i class="fa-regular fa-bell"></i>
-                                    <span class="badge-indicator"></span>
-                                </button>
-                                <div class="dropdown-panel" id="notif-dropdown">
-                                    <div class="dropdown-panel-header">
-                                        <h4>Notifications</h4>
-                                        <button class="btn-ghost" onclick="clearNotifications()"
-                                            style="font-size:0.8rem; padding:0.25rem 0.5rem;">Mark all read</button>
-                                    </div>
-                                    <ul class="dropdown-list" id="notif-list">
-                                        <li class="dropdown-item unread">
-                                            <div class="dropdown-item-icon bg-danger-light text-danger"><i
-                                                    class="fa-solid fa-triangle-exclamation"></i></div>
-                                            <div class="dropdown-item-content">
-                                                <p><strong>VAN-1044</strong> — Engine Diagnostic Error #P0300</p>
-                                                <span>45 mins ago</span>
-                                            </div>
-                                        </li>
-                                        <li class="dropdown-item unread">
-                                            <div class="dropdown-item-icon bg-warning-light text-warning"><i
-                                                    class="fa-solid fa-wrench"></i></div>
-                                            <div class="dropdown-item-content">
-                                                <p><strong>TRK-7731</strong> — Scheduled PM due in 500 miles</p>
-                                                <span>1 hour ago</span>
-                                            </div>
-                                        </li>
-                                        <li class="dropdown-item">
-                                            <div class="dropdown-item-icon bg-success-light text-success"><i
-                                                    class="fa-solid fa-check-circle"></i></div>
-                                            <div class="dropdown-item-content">
-                                                <p><strong>TRK-8492</strong> — Delivery #DLV-442 completed</p>
-                                                <span>2 hours ago</span>
-                                            </div>
-                                        </li>
-                                        <li class="dropdown-item">
-                                            <div class="dropdown-item-icon bg-info-light text-info"><i
-                                                    class="fa-solid fa-gas-pump"></i></div>
-                                            <div class="dropdown-item-content">
-                                                <p><strong>TRK-7731</strong> — Refueling logged (120 Gal)</p>
-                                                <span>3 hours ago</span>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                    <div class="dropdown-panel-footer">
-                                        <a href="#" onclick="navigateTo('dashboard'); closeAllDropdowns();">View All
-                                            Activity</a>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Settings Button + Dropdown -->
-                            <div class="dropdown-wrapper" id="settings-wrapper">
-                                <button class="btn-icon" onclick="toggleDropdown('settings-dropdown', event)"
-                                    title="Settings">
-                                    <i class="fa-solid fa-gear"></i>
-                                </button>
-                                <div class="dropdown-panel" id="settings-dropdown">
-                                    <div class="dropdown-panel-header">
-                                        <h4>Settings</h4>
-                                    </div>
-                                    <ul class="dropdown-list settings-list">
-                                        <li class="dropdown-item" onclick="toggleDarkMode()">
-                                            <div class="dropdown-item-icon bg-info-light text-info"><i
-                                                    class="fa-solid fa-moon"></i></div>
-                                            <div class="dropdown-item-content">
-                                                <p><strong>Dark Mode</strong></p>
-                                                <span>Toggle dark theme</span>
-                                            </div>
-                                            <label class="toggle-switch" style="margin-left:auto;">
-                                                <input type="checkbox" id="dark-mode-toggle">
-                                                <span class="toggle-slider"></span>
-                                            </label>
-                                        </li>
-                                        <li class="dropdown-item">
-                                            <div class="dropdown-item-icon bg-success-light text-success"><i
-                                                    class="fa-solid fa-language"></i></div>
-                                            <div class="dropdown-item-content">
-                                                <p><strong>Language</strong></p>
-                                                <span>English (US)</span>
-                                            </div>
-                                        </li>
-                                        <li class="dropdown-item" onclick="navigateTo('drivers'); closeAllDropdowns();">
-                                            <div class="dropdown-item-icon bg-warning-light text-warning"><i
-                                                    class="fa-solid fa-user-gear"></i></div>
-                                            <div class="dropdown-item-content">
-                                                <p><strong>My Profile</strong></p>
-                                                <span>Manage account details</span>
-                                            </div>
-                                        </li>
-                                        <li class="dropdown-item" style="cursor: pointer;">
-                                            <div class="dropdown-item-icon bg-danger-light text-danger"><i
-                                                    class="fa-solid fa-circle-question"></i></div>
-                                            <div class="dropdown-item-content">
-                                                <p><strong>Help & Support</strong></p>
-                                                <span>Documentation & FAQ</span>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                    <div class="dropdown-panel-footer">
-                                        <a href="#" onclick="logout(); closeAllDropdowns();">Sign Out</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </header>
-
-                    <!-- DYNAMIC PAGE CONTENT -->
-                    <main class="page-content">
-
-                        <!-- 1. Command Center Dashboard -->
-                        <section id="content-dashboard" class="page-section active">
-                            <div class="page-header">
-                                <div class="page-title">
-                                    <h1>Command Center</h1>
-                                    <p>Live visibility into global fleet operations.</p>
-                                </div>
-                                <div class="page-actions">
-                                    <div class="filters-bar" style="margin-bottom:0; padding: 0.5rem;">
-                                        <div class="filter-group">
-                                            <select>
-                                                <option>All Regions</option>
-                                                <option>North America</option>
-                                                <option>Europe</option>
-                                            </select>
-                                        </div>
-                                        <div class="filter-group">
-                                            <select>
-                                                <option>All Types</option>
-                                                <option>Heavy Duty</option>
-                                                <option>Vans</option>
-                                            </select>
-                                        </div>
-                                        <div class="filter-group">
-                                            <select>
-                                                <option>All Statuses</option>
-                                                <option>Active</option>
-                                                <option>In Shop</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-primary"><i class="fa-solid fa-download"></i> Export
-                                        Data</button>
-                                </div>
-                            </div>
-
-                            <!-- KPIs -->
-                            <div class="grid grid-4 mb-4">
-                                <div class="card kpi-card">
-                                    <div class="kpi-header">
-                                        <div class="kpi-body">
-                                            <h4>Active Fleet</h4>
-                                            <div class="value">842 <span>/ 950</span></div>
-                                        </div>
-                                        <div class="kpi-icon bg-info-light text-info"><i
-                                                class="fa-solid fa-truck-moving"></i></div>
-                                    </div>
-                                    <div class="kpi-trend trend-up"><i class="fa-solid fa-arrow-trend-up"></i> +4.5%
-                                        from last week</div>
-                                </div>
-                                <div class="card kpi-card">
-                                    <div class="kpi-header">
-                                        <div class="kpi-body">
-                                            <h4>Maintenance Alerts</h4>
-                                            <div class="value">28</div>
-                                        </div>
-                                        <div class="kpi-icon bg-danger-light text-danger"><i
-                                                class="fa-solid fa-triangle-exclamation"></i></div>
-                                    </div>
-                                    <div class="kpi-trend trend-down"><i class="fa-solid fa-arrow-trend-up"></i> 12 new
-                                        alerts today</div>
-                                </div>
-                                <div class="card kpi-card">
-                                    <div class="kpi-header">
-                                        <div class="kpi-body">
-                                            <h4>Utilization Rate</h4>
-                                            <div class="value">88.6%</div>
-                                        </div>
-                                        <div class="kpi-icon bg-success-light text-success"><i
-                                                class="fa-solid fa-percent"></i></div>
-                                    </div>
-                                    <div class="kpi-trend trend-up"><i class="fa-solid fa-arrow-trend-up"></i> Optimum
-                                        efficiency</div>
-                                </div>
-                                <div class="card kpi-card">
-                                    <div class="kpi-header">
-                                        <div class="kpi-body">
-                                            <h4>Pending Cargo</h4>
-                                            <div class="value">14.2k <span>tons</span></div>
-                                        </div>
-                                        <div class="kpi-icon bg-warning-light text-warning"><i
-                                                class="fa-solid fa-boxes-stacked"></i></div>
-                                    </div>
-                                    <div class="kpi-trend trend-flat"><i class="fa-solid fa-minus"></i> Steady pipeline
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Charts row -->
-                            <div class="grid grid-2 mb-4">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h3>Fleet Utilization (Last 7 Days)</h3>
-                                        <button class="btn-icon"><i class="fa-solid fa-ellipsis"></i></button>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="chart-container">
-                                            <canvas id="utilizationChart"></canvas>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h3>Revenue vs Op Costs</h3>
-                                        <button class="btn-icon"><i class="fa-solid fa-ellipsis"></i></button>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="chart-container">
-                                            <canvas id="revenueChart"></canvas>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Recent Activity -->
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3>Recent Activity Pulse</h3>
-                                    <a href="#" class="text-brand font-semibold">View Master Log</a>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <thead>
-                                            <tr>
-                                                <th>Vehicle ID</th>
-                                                <th>Event Details</th>
-                                                <th>Location / Route</th>
-                                                <th>Timestamp</th>
-                                                <th>Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><a href="#" class="font-semibold">TRK-8492</a></td>
-                                                <td>Cargo Delivery Completed #DLV-442</td>
-                                                <td>Chicago, IL Terminal</td>
-                                                <td>10 mins ago</td>
-                                                <td><span class="badge badge-success"><i
-                                                            class="fa-solid fa-check-circle"></i> Completed</span></td>
-                                            </tr>
-                                            <tr>
-                                                <td><a href="#" class="font-semibold">VAN-1044</a></td>
-                                                <td>Engine Diagnostic Error Code #P0300</td>
-                                                <td>En Route (I-95 South)</td>
-                                                <td>45 mins ago</td>
-                                                <td><span class="badge badge-danger"><i
-                                                            class="fa-solid fa-triangle-exclamation"></i> Alert</span>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><a href="#" class="font-semibold">TRK-7731</a></td>
-                                                <td>Routine Refueling Logged (120 Gal)</td>
-                                                <td>Dallas, TX Station</td>
-                                                <td>1 hour ago</td>
-                                                <td><span class="badge badge-info"><i class="fa-solid fa-gas-pump"></i>
-                                                        Service</span></td>
-                                            </tr>
-                                            <tr>
-                                                <td><a href="#" class="font-semibold">TRK-9002</a></td>
-                                                <td>Dispatched for Trip #TRP-8812</td>
-                                                <td>Seattle, WA to Portland, OR</td>
-                                                <td>2 hours ago</td>
-                                                <td><span class="badge badge-warning"><i class="fa-solid fa-route"></i>
-                                                        Transit</span></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- 2. Vehicle Registry Page -->
-                        <section id="content-vehicles" class="page-section">
-                            <div class="page-header">
-                                <div class="page-title">
-                                    <h1>Vehicle Registry</h1>
-                                    <p>Manage fleet inventory, details, and active statuses.</p>
-                                </div>
-                                <div class="page-actions">
-                                    <button class="btn btn-primary"><i class="fa-solid fa-plus"></i> Register
-                                        Vehicle</button>
-                                </div>
-                            </div>
-
-                            <div class="card">
-                                <div class="filters-bar"
-                                    style="border: none; border-bottom: 1px solid var(--border-light); margin: 0; border-radius: 0;">
-                                    <div class="search-bar" style="width: 250px;">
-                                        <i class="fa-solid fa-magnifying-glass"></i>
-                                        <input type="text" placeholder="Search by ID, Make, Model">
-                                    </div>
-                                    <div class="filter-group ml-auto">
-                                        <select>
-                                            <option>Status: All</option>
-                                            <option>Active</option>
-                                            <option>Out of Service</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <thead>
-                                            <tr>
-                                                <th>Vehicle Info</th>
-                                                <th>Type / Class</th>
-                                                <th>Current Mileage</th>
-                                                <th>OOS Toggle</th>
-                                                <th>Status</th>
-                                                <th class="text-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>
-                                                    <strong>TRK-8492</strong><br>
-                                                    <span class="text-muted" style="font-size: 0.75rem;">2022 Volvo VNL
-                                                        860</span>
-                                                </td>
-                                                <td>Heavy Duty (Class 8)</td>
-                                                <td>142,500 mi</td>
-                                                <td>
-                                                    <label class="toggle-switch">
-                                                        <input type="checkbox" checked>
-                                                        <span class="toggle-slider"></span>
-                                                    </label>
-                                                </td>
-                                                <td><span class="badge badge-success">Active</span></td>
-                                                <td class="text-right">
-                                                    <button class="table-action-dots"><i
-                                                            class="fa-solid fa-pen-to-square"></i></button>
-                                                    <button class="table-action-dots text-danger"><i
-                                                            class="fa-solid fa-trash"></i></button>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <strong>VAN-1044</strong><br>
-                                                    <span class="text-muted" style="font-size: 0.75rem;">2023 Ford
-                                                        Transit</span>
-                                                </td>
-                                                <td>Cargo Van (Class 2)</td>
-                                                <td>28,400 mi</td>
-                                                <td>
-                                                    <label class="toggle-switch">
-                                                        <input type="checkbox">
-                                                        <span class="toggle-slider"></span>
-                                                    </label>
-                                                </td>
-                                                <td><span class="badge badge-danger">In Shop</span></td>
-                                                <td class="text-right">
-                                                    <button class="table-action-dots"><i
-                                                            class="fa-solid fa-pen-to-square"></i></button>
-                                                    <button class="table-action-dots text-danger"><i
-                                                            class="fa-solid fa-trash"></i></button>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <strong>TRK-7731</strong><br>
-                                                    <span class="text-muted" style="font-size: 0.75rem;">2021
-                                                        Freightliner Cascadia</span>
-                                                </td>
-                                                <td>Heavy Duty (Class 8)</td>
-                                                <td>210,000 mi</td>
-                                                <td>
-                                                    <label class="toggle-switch">
-                                                        <input type="checkbox" checked>
-                                                        <span class="toggle-slider"></span>
-                                                    </label>
-                                                </td>
-                                                <td><span class="badge badge-warning">En Route</span></td>
-                                                <td class="text-right">
-                                                    <button class="table-action-dots"><i
-                                                            class="fa-solid fa-pen-to-square"></i></button>
-                                                    <button class="table-action-dots text-danger"><i
-                                                            class="fa-solid fa-trash"></i></button>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- 3. Trip Dispatcher -->
-                        <section id="content-dispatch" class="page-section">
-                            <div class="page-header">
-                                <div class="page-title">
-                                    <h1>Trip Dispatcher</h1>
-                                    <p>Plan, assign, and monitor cargo and routes.</p>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-2 mb-4">
-                                <!-- Dispatch Form -->
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h3>Create New Dispatch</h3>
-                                    </div>
-                                    <div class="card-body">
-                                        <form class="form-layout">
-                                            <div class="form-group">
-                                                <label>1. Select Vehicle</label>
-                                                <select class="form-control">
-                                                    <option selected disabled>-- Select available vehicle --</option>
-                                                    <option>TRK-8492 (Volvo VNL)</option>
-                                                    <option>TRK-9002 (Kenworth T680)</option>
-                                                </select>
-                                                <div class="form-hint text-success"><i
-                                                        class="fa-solid fa-circle-check"></i> 14 Heavy Duty available
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>2. Assign Driver</label>
-                                                <select class="form-control">
-                                                    <option selected disabled>-- Select eligible driver --</option>
-                                                    <option>Michael Scott (Available: 10h 30m shift left)</option>
-                                                    <option>Jim Halpert (Available: 11h 00m shift left)</option>
-                                                </select>
-                                            </div>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label>Cargo Type/Description</label>
-                                                    <input type="text" class="form-control"
-                                                        placeholder="e.g. Palletized Electronics">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label>Cargo Weight (lbs)</label>
-                                                    <input type="number" class="form-control" placeholder="40000">
-                                                </div>
-                                            </div>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label>Origin</label>
-                                                    <input type="text" class="form-control"
-                                                        placeholder="City, State, Zip">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label>Destination</label>
-                                                    <input type="text" class="form-control"
-                                                        placeholder="City, State, Zip">
-                                                </div>
-                                            </div>
-                                            <div class="d-flex justify-between align-center mt-2">
-                                                <span class="text-warning" style="font-size:0.85rem;"><i
-                                                        class="fa-solid fa-triangle-exclamation"></i> Max payload alert
-                                                    based on class</span>
-                                                <button type="button" class="btn btn-primary px-4"><i
-                                                        class="fa-solid fa-paper-plane"></i> Dispatch Now</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-
-                                <!-- Recent Dispatches List -->
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h3>Active Dispatches</h3>
-                                        <button class="btn-ghost" style="padding: 0;"><i
-                                                class="fa-solid fa-rotate-right"></i></button>
-                                    </div>
-                                    <ul style="padding: 0; margin: 0; list-style: none;">
-                                        <li
-                                            style="padding: 1.2rem; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between;">
-                                            <div>
-                                                <strong>TRP-8812</strong> <span class="badge badge-warning ml-2">In
-                                                    Transit</span>
-                                                <div class="text-muted" style="font-size: 0.8rem; margin-top: 0.2rem;">
-                                                    Seattle, WA → Portland, OR</div>
-                                                <div style="font-size: 0.8rem; margin-top: 0.2rem;"><i
-                                                        class="fa-solid fa-user"></i> Jim Halpert | 🚚 TRK-9002</div>
-                                            </div>
-                                            <button class="btn-outline"><i class="fa-solid fa-location-crosshairs"></i>
-                                                Track</button>
-                                        </li>
-                                        <li
-                                            style="padding: 1.2rem; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between;">
-                                            <div>
-                                                <strong>TRP-8811</strong> <span
-                                                    class="badge badge-success ml-2">Arrived</span>
-                                                <div class="text-muted" style="font-size: 0.8rem; margin-top: 0.2rem;">
-                                                    Miami, FL → Orlando, FL</div>
-                                                <div style="font-size: 0.8rem; margin-top: 0.2rem;"><i
-                                                        class="fa-solid fa-user"></i> Dwight S. | 🚚 TRK-4401</div>
-                                            </div>
-                                            <button class="btn-outline"><i class="fa-solid fa-clipboard-check"></i>
-                                                Details</button>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- 4. Maintenance Logs -->
-                        <section id="content-maintenance" class="page-section">
-                            <div class="page-header">
-                                <div class="page-title">
-                                    <h1>Maintenance Logs</h1>
-                                    <p>Track repairs, preventive maintenance, and service scheduling.</p>
-                                </div>
-                            </div>
-                            <div class="grid grid-2">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h3>Log Service Entry</h3>
-                                    </div>
-                                    <div class="card-body">
-                                        <form class="form-layout">
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label>Vehicle ID</label>
-                                                    <select class="form-control">
-                                                        <option>VAN-1044 (Needs Attention)</option>
-                                                        <option>TRK-8492</option>
-                                                    </select>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label>Service Date</label>
-                                                    <input type="date" class="form-control" value="2023-11-14">
-                                                </div>
-                                            </div>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label>Service Type</label>
-                                                    <select class="form-control">
-                                                        <option>Preventive Maintenance (PM)</option>
-                                                        <option>Engine Repair</option>
-                                                        <option>Tire Replacement</option>
-                                                        <option>Brake Service</option>
-                                                    </select>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label>Odometer Reading</label>
-                                                    <input type="number" class="form-control">
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Technician Notes</label>
-                                                <textarea class="form-control"
-                                                    placeholder="Describe the issue and parts replaced..."></textarea>
-                                            </div>
-                                            <div class="text-right mt-2">
-                                                <button type="button" class="btn btn-primary"><i
-                                                        class="fa-solid fa-floppy-disk"></i> Save Log entry</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="empty-state card h-100">
-                                        <i class="fa-solid fa-clipboard-list"></i>
-                                        <h3>No Recent Service Records</h3>
-                                        <p>Select a vehicle to view its holistic service history, compliance checks, and
-                                            upcoming preventive maintenance alerts.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- 5. Expense & Fuel Logging -->
-                        <section id="content-expenses" class="page-section">
-                            <div class="page-header">
-                                <div class="page-title">
-                                    <h1>Expense & Fuel Management</h1>
-                                    <p>Monitor operational costs and consolidate fuel entries.</p>
-                                </div>
-                            </div>
-                            <div class="grid grid-3">
-                                <div class="card" style="grid-column: span 1;">
-                                    <div class="card-header">
-                                        <h3>Log Fuel Expense</h3>
-                                    </div>
-                                    <div class="card-body">
-                                        <form class="form-layout">
-                                            <div class="form-group">
-                                                <label>Vehicle / Driver</label>
-                                                <select class="form-control">
-                                                    <option>TRK-8492 (Michael S.)</option>
-                                                </select>
-                                            </div>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label>Gallons Purchased</label>
-                                                    <input type="number" class="form-control" placeholder="0.00">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label>Total Cost ($)</label>
-                                                    <input type="number" class="form-control" placeholder="0.00">
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Receipt Upload</label>
-                                                <div
-                                                    style="border: 2px dashed var(--border); padding: 2rem; border-radius: var(--radius-md); text-align: center; color: var(--text-muted); cursor: pointer;">
-                                                    <i class="fa-solid fa-cloud-arrow-up"
-                                                        style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
-                                                    <p>Drag & Drop or Click to browse</p>
-                                                </div>
-                                            </div>
-                                            <button type="button" class="btn btn-primary btn-block"><i
-                                                    class="fa-solid fa-plus"></i> Submit Expense</button>
-                                        </form>
-                                    </div>
-                                </div>
-                                <div class="card" style="grid-column: span 2;">
-                                    <div class="kpi-card bg-primary"
-                                        style="border-radius: var(--radius-lg); color: white; margin-bottom: 2rem;">
-                                        <div class="kpi-header">
-                                            <div class="kpi-body">
-                                                <h4 style="color: rgba(255,255,255,0.7);">Total Operational Cost (MTD)
-                                                </h4>
-                                                <div class="value" style="color: white; font-size: 2.5rem;">$45,200.50
-                                                </div>
-                                            </div>
-                                            <div class="kpi-icon bg-brand text-white"
-                                                style="background: rgba(255,255,255,0.2);"><i
-                                                    class="fa-solid fa-money-bill-wave"></i></div>
-                                        </div>
-                                    </div>
-
-                                    <div class="px-3">
-                                        <h3 class="mb-3">Recent Transactions</h3>
-                                        <div class="table-responsive">
-                                            <table class="table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Date</th>
-                                                        <th>Category</th>
-                                                        <th>Vehicle</th>
-                                                        <th>Amount</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr>
-                                                        <td>Today, 08:30 AM</td>
-                                                        <td><span class="badge badge-info text-info"><i
-                                                                    class="fa-solid fa-gas-pump"></i> Fuel</span></td>
-                                                        <td>TRK-7731</td>
-                                                        <td><strong>$450.20</strong></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Yesterday</td>
-                                                        <td><span class="badge badge-warning text-warning"><i
-                                                                    class="fa-solid fa-wrench"></i> Service Parts</span>
-                                                        </td>
-                                                        <td>VAN-1044</td>
-                                                        <td><strong>$1,200.00</strong></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Nov 12, 2023</td>
-                                                        <td><span class="badge badge-neutral text-muted"><i
-                                                                    class="fa-solid fa-road"></i> Tolls</span></td>
-                                                        <td>TRK-8492</td>
-                                                        <td><strong>$45.00</strong></td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- 6. Driver Performance -->
-                        <section id="content-drivers" class="page-section">
-                            <div class="page-header">
-                                <div class="page-title">
-                                    <h1>Driver Performance</h1>
-                                    <p>Manage driver compliance, shift hours, and safety rankings.</p>
-                                </div>
-                            </div>
-                            <div class="grid grid-3">
-                                <!-- Driver 1 -->
-                                <div class="card driver-card p-4">
-                                    <div class="driver-header">
-                                        <img src="https://i.pravatar.cc/150?img=33" alt="Driver" class="driver-avatar">
-                                        <div class="driver-info">
-                                            <h3>Michael Scott</h3>
-                                            <span class="badge badge-success">On Duty</span>
-                                        </div>
-                                    </div>
-                                    <div class="driver-metrics">
-                                        <div class="metric-box">
-                                            <span>Safety Score</span>
-                                            <strong>98%</strong>
-                                        </div>
-                                        <div class="metric-box">
-                                            <span>Hours Left</span>
-                                            <strong>10.5h</strong>
-                                        </div>
-                                    </div>
-                                    <div class="mt-4">
-                                        <div class="d-flex justify-between align-center mb-2">
-                                            <span style="font-size: 0.85rem; font-weight: 500;">CDL License
-                                                Expiry</span>
-                                            <span class="badge badge-success">Valid (2 Yrs)</span>
-                                        </div>
-                                        <div
-                                            class="d-flex justify-between align-center border-top pt-3 mt-3 border-light">
-                                            <span style="font-weight: 500;">Toggle Duty</span>
-                                            <label class="toggle-switch">
-                                                <input type="checkbox" checked>
-                                                <span class="toggle-slider"></span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Driver 2 -->
-                                <div class="card driver-card p-4">
-                                    <div class="driver-header">
-                                        <img src="https://i.pravatar.cc/150?img=12" alt="Driver" class="driver-avatar">
-                                        <div class="driver-info">
-                                            <h3>Jim Halpert</h3>
-                                            <span class="badge badge-warning">Driving</span>
-                                        </div>
-                                    </div>
-                                    <div class="driver-metrics">
-                                        <div class="metric-box">
-                                            <span>Safety Score</span>
-                                            <strong>92%</strong>
-                                        </div>
-                                        <div class="metric-box">
-                                            <span>Hours Left</span>
-                                            <strong>4.2h</strong>
-                                        </div>
-                                    </div>
-                                    <div class="mt-4">
-                                        <div class="d-flex justify-between align-center mb-2">
-                                            <span style="font-size: 0.85rem; font-weight: 500;">CDL License
-                                                Expiry</span>
-                                            <span class="badge badge-success">Valid (1 Yr)</span>
-                                        </div>
-                                        <div
-                                            class="d-flex justify-between align-center border-top pt-3 mt-3 border-light">
-                                            <span style="font-weight: 500;">Toggle Duty</span>
-                                            <label class="toggle-switch">
-                                                <input type="checkbox" checked>
-                                                <span class="toggle-slider"></span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Driver 3 -->
-                                <div class="card driver-card p-4">
-                                    <div class="driver-header">
-                                        <img src="https://i.pravatar.cc/150?img=59" alt="Driver" class="driver-avatar">
-                                        <div class="driver-info">
-                                            <h3>Dwight Schrute</h3>
-                                            <span class="badge badge-neutral">Off Duty</span>
-                                        </div>
-                                    </div>
-                                    <div class="driver-metrics">
-                                        <div class="metric-box">
-                                            <span>Safety Score</span>
-                                            <strong>100%</strong>
-                                        </div>
-                                        <div class="metric-box">
-                                            <span>Hours Left</span>
-                                            <strong>14h</strong>
-                                        </div>
-                                    </div>
-                                    <div class="mt-4">
-                                        <div class="d-flex justify-between align-center mb-2">
-                                            <span style="font-size: 0.85rem; font-weight: 500;">CDL License
-                                                Expiry</span>
-                                            <span class="badge badge-danger">Expires 30 Days</span>
-                                        </div>
-                                        <div
-                                            class="d-flex justify-between align-center border-top pt-3 mt-3 border-light">
-                                            <span style="font-weight: 500;">Toggle Duty</span>
-                                            <label class="toggle-switch">
-                                                <input type="checkbox">
-                                                <span class="toggle-slider"></span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- 7. Analytics & Reports -->
-                        <section id="content-analytics" class="page-section">
-                            <div class="page-header">
-                                <div class="page-title">
-                                    <h1>Analytics & Reporting</h1>
-                                    <p>Deep-dive metrics into fleet ROI, efficiency, and growth.</p>
-                                </div>
-                                <div class="page-actions">
-                                    <button class="btn btn-outline"><i class="fa-solid fa-file-pdf"></i> Export
-                                        PDF</button>
-                                    <button class="btn btn-outline"><i class="fa-solid fa-file-csv"></i> Export
-                                        CSV</button>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-2 mb-4">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h3>Fuel Efficiency Trends (Avg MPG)</h3>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="chart-container">
-                                            <canvas id="fuelEfficiencyChart"></canvas>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h3>Vehicle ROI by Class</h3>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="chart-container">
-                                            <canvas id="roiChart"></canvas>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </section>
-
-                        <!-- 8. User Management (Manager Only) -->
-                        <section id="content-users" class="page-section">
-                            <div class="page-header">
-                                <div class="page-title">
-                                    <h1>User Management</h1>
-                                    <p>Manage user accounts and assign roles across the organization.</p>
-                                </div>
-                                <div class="page-actions">
-                                    <button class="btn btn-primary" onclick="openAddUserModal()">
-                                        <i class="fa-solid fa-user-plus"></i> Add User
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Role Summary Cards -->
-                            <div class="grid grid-4 mb-4" id="role-summary-cards">
-                                <div class="card kpi-card">
-                                    <div class="kpi-header">
-                                        <div class="kpi-body">
-                                            <h4>Total Users</h4>
-                                            <div class="value" id="stat-total">0</div>
-                                        </div>
-                                        <div class="kpi-icon bg-info-light text-info"><i class="fa-solid fa-users"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card kpi-card">
-                                    <div class="kpi-header">
-                                        <div class="kpi-body">
-                                            <h4>Managers</h4>
-                                            <div class="value" id="stat-managers">0</div>
-                                        </div>
-                                        <div class="kpi-icon bg-success-light text-success"><i
-                                                class="fa-solid fa-user-tie"></i></div>
-                                    </div>
-                                </div>
-                                <div class="card kpi-card">
-                                    <div class="kpi-header">
-                                        <div class="kpi-body">
-                                            <h4>Dispatchers</h4>
-                                            <div class="value" id="stat-dispatchers">0</div>
-                                        </div>
-                                        <div class="kpi-icon bg-warning-light text-warning"><i
-                                                class="fa-solid fa-headset"></i></div>
-                                    </div>
-                                </div>
-                                <div class="card kpi-card">
-                                    <div class="kpi-header">
-                                        <div class="kpi-body">
-                                            <h4>Active</h4>
-                                            <div class="value" id="stat-active">0</div>
-                                        </div>
-                                        <div class="kpi-icon bg-danger-light text-danger"><i
-                                                class="fa-solid fa-circle-check"></i></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Users Table -->
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3>All Users</h3>
-                                    <button class="btn-ghost" onclick="loadUsers()" style="padding:0;">
-                                        <i class="fa-solid fa-rotate-right"></i> Refresh
-                                    </button>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <thead>
-                                            <tr>
-                                                <th>User</th>
-                                                <th>Email</th>
-                                                <th>Current Role</th>
-                                                <th>Assign Role</th>
-                                                <th>Status</th>
-                                                <th class="text-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="users-table-body">
-                                            <tr>
-                                                <td colspan="6"
-                                                    style="text-align:center; padding:2rem; color: var(--text-muted);">
-                                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading users...
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- Add User Modal -->
-                        <div class="modal-overlay" id="add-user-modal" style="display:none;">
-                            <div class="modal-card">
-                                <div class="modal-header">
-                                    <h3><i class="fa-solid fa-user-plus"></i> Add New User</h3>
-                                    <button class="btn-icon" onclick="closeAddUserModal()">
-                                        <i class="fa-solid fa-xmark"></i>
-                                    </button>
-                                </div>
-                                <form onsubmit="addUser(event)">
-                                    <div class="card-body">
-                                        <div class="form-group">
-                                            <label>Full Name</label>
-                                            <input type="text" class="form-control" id="new-user-name"
-                                                placeholder="John Smith" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Email Address</label>
-                                            <input type="email" class="form-control" id="new-user-email"
-                                                placeholder="john@fleetflow.com" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Assign Role</label>
-                                            <select class="form-control" id="new-user-role" required>
-                                                <option value="manager">Manager</option>
-                                                <option value="dispatcher" selected>Dispatcher</option>
-                                                <option value="safety">Safety Officer</option>
-                                                <option value="finance">Financial Analyst</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-outline"
-                                            onclick="closeAddUserModal()">Cancel</button>
-                                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i>
-                                            Create User</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
-                    </main>
+        <!-- Signup Modal -->
+        <div class="modal-overlay" id="signup-modal" style="display:none;">
+            <div class="modal-card" style="width:520px;">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-user-plus"></i> Create Your Account</h3>
+                    <button class="btn-icon" onclick="closeSignupModal()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
+                <form onsubmit="signupUser(event)">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-user"></i>
+                                <input type="text" id="signup-name" placeholder="John Smith" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-regular fa-envelope"></i>
+                                <input type="email" id="signup-email" placeholder="john@company.com" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-lock"></i>
+                                <input type="password" id="signup-password" placeholder="••••••••" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Select Your Role</label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-id-badge"></i>
+                                <select id="signup-role" required>
+                                    <option value="manager">Manager</option>
+                                    <option value="dispatcher" selected>Dispatcher</option>
+                                    <option value="safety">Safety Officer</option>
+                                    <option value="finance">Financial Analyst</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="signup-error"
+                            style="display:none; padding:0.75rem 1rem; border-radius:var(--radius-md); background:rgba(239,68,68,0.1); color:#EF4444; font-size:0.85rem; text-align:center;">
+                        </div>
+                        <div id="signup-success"
+                            style="display:none; padding:0.75rem 1rem; border-radius:var(--radius-md); background:rgba(16,185,129,0.1); color:#10B981; font-size:0.85rem; text-align:center;">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="closeSignupModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i>
+                            Register</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Chart Data from Server -->
-    <script>
-        const utilizationData = {{ utilization_data | tojson }};
-        const revenueData = {{ revenue_data | tojson }};
-        const costData = {{ cost_data | tojson }};
-        const fuelData = {{ fuel_data | tojson }};
-        const roiData = {{ roi_data | tojson }};
-    </script>
-
-    <!-- Application JS -->
     <script src="{{ url_for('static', path='js/app.js') }}"></script>
+    <script>
+        // Load live stats for the landing hero panel
+        fetch('/api/dashboard/stats')
+            .then(r => r.json())
+            .then(s => {
+                const fleetEl = document.getElementById('hero-fleet-count');
+                const driverEl = document.getElementById('hero-driver-count');
+                if (fleetEl) fleetEl.textContent = s.active_vehicles ?? '—';
+                if (driverEl) driverEl.textContent = s.on_duty_drivers ?? '—';
+            }).catch(() => { });
+    </script>
 </body>
 
 </html>
