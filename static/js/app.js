@@ -277,11 +277,13 @@ function applyCurrentUser() {
     if (!stored) return;
     const user = JSON.parse(stored);
     const nameEl = document.getElementById('sidebar-user-name');
-    const roleEl = document.getElementById('sidebar-user-role');
     const avatarEl = document.getElementById('sidebar-avatar');
     if (nameEl) nameEl.textContent = user.name || 'User';
-    if (roleEl) roleEl.textContent = (user.role || '').charAt(0).toUpperCase() + (user.role || '').slice(1);
     if (avatarEl && user.avatar) avatarEl.src = user.avatar;
+    // Apply role-based access control (filters sidebar + injects role badge)
+    applyRoleBasedAccess(user);
+    // Guard: redirect away if current page is off-limits
+    guardCurrentPage(user);
 }
 
 // ============================================================================
