@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="chart-container">
+    <canvas id="utilizationChart"></canvas>
+</div>
+
+<div class="chart-container">
+    <canvas id="revenueChart"></canvas>
+</div>
+
+<script>
+const utilizationData = {{ utilization_data | tojson }};
+const revenueData = {{ revenue_data | tojson }};
+const costData = {{ cost_data | tojson }};
+</script>
+
+{% endblock %}
