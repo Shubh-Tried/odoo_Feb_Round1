@@ -6,6 +6,7 @@
 var currentRole = '';
 
 var roleProfiles = {
+    admin: { name: 'System Admin', title: 'Administrator', avatar: 'https://i.pravatar.cc/150?img=11' },
     manager: { name: 'Jane Doe', title: 'Operations Manager', avatar: 'https://i.pravatar.cc/150?img=11' },
     dispatcher: { name: 'Jim Halpert', title: 'Fleet Dispatcher', avatar: 'https://i.pravatar.cc/150?img=33' },
     safety: { name: 'Dwight Schrute', title: 'Safety Officer', avatar: 'https://i.pravatar.cc/150?img=12' },
@@ -14,10 +15,10 @@ var roleProfiles = {
 
 /* Section labels map: which roles see each section label */
 var sectionRoles = {
-    main: ['manager', 'dispatcher', 'safety', 'finance'],
-    operations: ['manager', 'safety', 'finance'],
-    insights: ['manager', 'finance'],
-    admin: ['manager']
+    main: ['admin', 'manager', 'dispatcher', 'safety', 'finance'],
+    operations: ['admin', 'manager', 'safety', 'finance'],
+    insights: ['admin', 'manager', 'finance'],
+    admin: ['admin', 'manager']
 };
 
 /* ----- Login / Logout ----- */
@@ -126,6 +127,11 @@ function navigateTo(page) {
     // Auto-load users when navigating to User Management
     if (page === 'users') {
         loadUsers();
+    }
+
+    // Auto-load vehicles when navigating to Vehicle Registry
+    if (page === 'vehicles') {
+        loadVehicles();
     }
 }
 
@@ -441,4 +447,241 @@ function addUser(e) {
             loadUsers();
         })
         .catch(function (err) { console.error('Create user failed:', err); });
+}
+
+/* ==========================================================================
+   VEHICLE MANAGEMENT
+   ========================================================================== */
+var vehicleStatusBadge = {
+    'Active': 'badge-success',
+    'In Shop': 'badge-danger',
+    'En Route': 'badge-warning',
+    'Inactive': 'badge-neutral'
+};
+
+function loadVehicles() {
+    fetch('/api/vehicles')
+        .then(function (res) { return res.json(); })
+        .then(function (vehicles) { renderVehiclesTable(vehicles); })
+        .catch(function (err) { console.error('Failed to load vehicles:', err); });
+}
+
+function renderVehiclesTable(vehicles) {
+    var tbody = document.getElementById('vehicles-table-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = vehicles.map(function (v) {
+        var badge = vehicleStatusBadge[v.status] || 'badge-neutral';
+        var isActive = v.status === 'Active' || v.status === 'En Route';
+
+        return '<tr>' +
+            '<td>' +
+            '<strong>' + v.vehicle_id + '</strong><br>' +
+            '<span class="text-muted" style="font-size:0.75rem;">' + v.year + ' ' + v.make + ' ' + v.model + '</span>' +
+            '</td>' +
+            '<td>' + v.vehicle_type + ' (' + v.vehicle_class + ')</td>' +
+            '<td>' + Number(v.mileage).toLocaleString() + ' mi</td>' +
+            '<td>' +
+            '<label class="toggle-switch">' +
+            '<input type="checkbox"' + (isActive ? ' checked' : '') + ' disabled>' +
+            '<span class="toggle-slider"></span>' +
+            '</label>' +
+            '</td>' +
+            '<td><span class="badge ' + badge + '">' + v.status + '</span></td>' +
+            '<td class="text-right">' +
+            '<button class="table-action-dots text-danger" onclick="deleteVehicle(' + v.id + ')" title="Delete"><i class="fa-solid fa-trash"></i></button>' +
+            '</td>' +
+            '</tr>';
+    }).join('');
+}
+
+function deleteVehicle(dbId) {
+    if (!confirm('Are you sure you want to remove this vehicle?')) return;
+    fetch('/api/vehicles/' + dbId, { method: 'DELETE' })
+        .then(function () { loadVehicles(); })
+        .catch(function (err) { console.error('Delete vehicle failed:', err); });
+}
+
+function openRegisterVehicleModal() {
+    document.getElementById('register-vehicle-modal').style.display = 'flex';
+}
+
+function closeRegisterVehicleModal() {
+    document.getElementById('register-vehicle-modal').style.display = 'none';
+    var fields = ['reg-vehicle-id', 'reg-year', 'reg-make', 'reg-model', 'reg-mileage', 'reg-vin', 'reg-plate'];
+    fields.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+}
+
+function registerVehicle(e) {
+    e.preventDefault();
+    var payload = {
+        vehicle_id: document.getElementById('reg-vehicle-id').value,
+        make: document.getElementById('reg-make').value,
+        model: document.getElementById('reg-model').value,
+        year: parseInt(document.getElementById('reg-year').value),
+        vehicle_type: document.getElementById('reg-type').value,
+        vehicle_class: document.getElementById('reg-class').value,
+        mileage: parseInt(document.getElementById('reg-mileage').value),
+        vin: document.getElementById('reg-vin').value,
+        license_plate: document.getElementById('reg-plate').value
+    };
+
+    fetch('/api/vehicles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+        .then(function (res) { return res.json(); })
+        .then(function () {
+            closeRegisterVehicleModal();
+            loadVehicles();
+        })
+        .catch(function (err) { console.error('Register vehicle failed:', err); });
+}
+
+/* ==========================================================================
+   DB-BASED LOGIN (validates email against users table)
+   ========================================================================== */
+function loginFromDB(e) {
+    if (e) e.preventDefault();
+
+    var emailInput = document.querySelector('.login-form input[type="email"]');
+    var email = emailInput ? emailInput.value.trim() : '';
+    var passwordInput = document.querySelector('.login-form input[type="password"]');
+    var password = passwordInput ? passwordInput.value : '';
+    var errorDiv = document.getElementById('login-error');
+
+    // Hide previous error
+    if (errorDiv) errorDiv.style.display = 'none';
+
+    if (!email) {
+        if (errorDiv) {
+            errorDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Please enter your email address.';
+            errorDiv.style.display = 'block';
+        }
+        return;
+    }
+
+    fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password })
+    })
+        .then(function (res) {
+            if (!res.ok) {
+                return res.json().then(function (data) { throw new Error(data.error || 'Login failed'); });
+            }
+            return res.json();
+        })
+        .then(function (data) {
+            // Set the role dropdown to match the DB role so existing login() works
+            var roleSelect = document.getElementById('role-select');
+            if (roleSelect && data.user && data.user.role) {
+                roleSelect.value = data.user.role;
+            }
+
+            // Update roleProfiles with actual user data from DB
+            if (data.user) {
+                var r = data.user.role;
+                roleProfiles[r] = {
+                    name: data.user.name,
+                    title: roleLabels[r] || r,
+                    avatar: data.user.avatar || 'https://i.pravatar.cc/150?img=11'
+                };
+            }
+
+            // Delegate to existing login() which handles role filtering & view switching
+            login(null);
+        })
+        .catch(function (err) {
+            if (errorDiv) {
+                errorDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ' + err.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+}
+
+/* ==========================================================================
+   SIGNUP MODAL
+   ========================================================================== */
+function openSignupModal() {
+    var modal = document.getElementById('signup-modal');
+    if (modal) modal.style.display = 'flex';
+    // Reset messages
+    var errDiv = document.getElementById('signup-error');
+    var sucDiv = document.getElementById('signup-success');
+    if (errDiv) errDiv.style.display = 'none';
+    if (sucDiv) sucDiv.style.display = 'none';
+}
+
+function closeSignupModal() {
+    var modal = document.getElementById('signup-modal');
+    if (modal) modal.style.display = 'none';
+    // Clear form fields
+    var fields = ['signup-name', 'signup-email', 'signup-password'];
+    fields.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    var errDiv = document.getElementById('signup-error');
+    var sucDiv = document.getElementById('signup-success');
+    if (errDiv) errDiv.style.display = 'none';
+    if (sucDiv) sucDiv.style.display = 'none';
+}
+
+function signupUser(e) {
+    if (e) e.preventDefault();
+
+    var name = document.getElementById('signup-name').value.trim();
+    var email = document.getElementById('signup-email').value.trim();
+    var password = document.getElementById('signup-password').value;
+    var role = document.getElementById('signup-role').value;
+    var errDiv = document.getElementById('signup-error');
+    var sucDiv = document.getElementById('signup-success');
+
+    if (errDiv) errDiv.style.display = 'none';
+    if (sucDiv) sucDiv.style.display = 'none';
+
+    if (!name || !email || !password) {
+        if (errDiv) {
+            errDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Please fill in all fields.';
+            errDiv.style.display = 'block';
+        }
+        return;
+    }
+
+    fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, email: email, role: role, password: password })
+    })
+        .then(function (res) {
+            if (!res.ok) {
+                return res.json().then(function (data) { throw new Error(data.detail || 'Registration failed. Email may already exist.'); });
+            }
+            return res.json();
+        })
+        .then(function (data) {
+            if (sucDiv) {
+                sucDiv.innerHTML = '<i class="fa-solid fa-circle-check"></i> Account created successfully! You can now sign in with <strong>' + email + '</strong>';
+                sucDiv.style.display = 'block';
+            }
+            // Pre-fill the login email field
+            var loginEmail = document.querySelector('.login-form input[type="email"]');
+            if (loginEmail) loginEmail.value = email;
+
+            // Auto-close modal after 2 seconds
+            setTimeout(function () {
+                closeSignupModal();
+            }, 2000);
+        })
+        .catch(function (err) {
+            if (errDiv) {
+                errDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ' + err.message;
+                errDiv.style.display = 'block';
+            }
+        });
 }

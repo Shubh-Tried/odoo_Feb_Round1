@@ -31,7 +31,7 @@
                             </div>
                             <p>Sign in to your account</p>
                         </div>
-                        <form class="login-form" onsubmit="login(event)">
+                        <form class="login-form" onsubmit="loginFromDB(event)">
                             <div class="form-group">
                                 <label>Email Address</label>
                                 <div class="input-icon-wrapper">
@@ -52,6 +52,7 @@
                                 <div class="input-icon-wrapper">
                                     <i class="fa-solid fa-id-badge"></i>
                                     <select id="role-select" required>
+                                        <option value="admin">Administrator</option>
                                         <option value="manager" selected>Manager</option>
                                         <option value="dispatcher">Dispatcher</option>
                                         <option value="safety">Safety Officer</option>
@@ -68,7 +69,16 @@
                             <button type="submit" class="btn btn-primary btn-block">
                                 Sign In <i class="fa-solid fa-arrow-right"></i>
                             </button>
+                            <div id="login-error"
+                                style="display:none; margin-top:1rem; padding:0.75rem 1rem; border-radius:var(--radius-md); background:rgba(239,68,68,0.1); color:#EF4444; font-size:0.85rem; text-align:center;">
+                            </div>
                         </form>
+                        <div class="login-signup-prompt"
+                            style="text-align:center; margin-top:1.5rem; font-size:0.9rem; color:var(--text-muted);">
+                            Don't have an account?
+                            <a href="#" onclick="openSignupModal(); return false;"
+                                style="color:var(--primary); font-weight:600; text-decoration:none;">Create Account</a>
+                        </div>
                     </div>
                 </div>
                 <!-- Right Side Graphic -->
@@ -93,6 +103,68 @@
         </div>
 
         <!-- =========================================================
+             SIGNUP MODAL OVERLAY
+             ========================================================= -->
+        <div class="modal-overlay" id="signup-modal" style="display:none;">
+            <div class="modal-card" style="width:520px;">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-user-plus"></i> Create Your Account</h3>
+                    <button class="btn-icon" onclick="closeSignupModal()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <form onsubmit="signupUser(event)">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-user"></i>
+                                <input type="text" id="signup-name" placeholder="John Smith" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-regular fa-envelope"></i>
+                                <input type="email" id="signup-email" placeholder="john@company.com" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-lock"></i>
+                                <input type="password" id="signup-password" placeholder="••••••••" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Select Your Role</label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-id-badge"></i>
+                                <select id="signup-role" required>
+                                    <option value="manager">Manager</option>
+                                    <option value="dispatcher" selected>Dispatcher</option>
+                                    <option value="safety">Safety Officer</option>
+                                    <option value="finance">Financial Analyst</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="signup-error"
+                            style="display:none; padding:0.75rem 1rem; border-radius:var(--radius-md); background:rgba(239,68,68,0.1); color:#EF4444; font-size:0.85rem; text-align:center;">
+                        </div>
+                        <div id="signup-success"
+                            style="display:none; padding:0.75rem 1rem; border-radius:var(--radius-md); background:rgba(16,185,129,0.1); color:#10B981; font-size:0.85rem; text-align:center;">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="closeSignupModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i>
+                            Register</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- =========================================================
              MAIN APPLICATION LAYOUT
              ========================================================= -->
         <div id="view-main" class="view">
@@ -113,7 +185,7 @@
                     <div class="sidebar-nav">
                         <ul class="nav-list">
                             <li class="nav-label" data-section="main">Main</li>
-                            <li class="nav-item" data-roles="manager,dispatcher,safety,finance">
+                            <li class="nav-item" data-roles="admin,manager,dispatcher,safety,finance">
                                 <a href="#" class="nav-link active" data-page="dashboard"
                                     onclick="navigateTo('dashboard')">
                                     <i class="fa-solid fa-border-all"></i>
@@ -141,7 +213,7 @@
                                     <span>Maintenance Logs</span>
                                 </a>
                             </li>
-                            <li class="nav-item" data-roles="manager,finance">
+                            <li class="nav-item" data-roles="admin,manager,finance">
                                 <a href="#" class="nav-link" data-page="expenses" onclick="navigateTo('expenses')">
                                     <i class="fa-solid fa-gas-pump"></i>
                                     <span>Expense & Fuel</span>
@@ -155,7 +227,7 @@
                             </li>
 
                             <li class="nav-label" data-section="insights">Insights</li>
-                            <li class="nav-item" data-roles="manager,finance">
+                            <li class="nav-item" data-roles="admin,manager,finance">
                                 <a href="#" class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">
                                     <i class="fa-solid fa-chart-line"></i>
                                     <span>Analytics & Reports</span>
@@ -163,7 +235,7 @@
                             </li>
 
                             <li class="nav-label" data-section="admin">Administration</li>
-                            <li class="nav-item" data-roles="manager">
+                            <li class="nav-item" data-roles="admin,manager">
                                 <a href="#" class="nav-link" data-page="users" onclick="navigateTo('users')">
                                     <i class="fa-solid fa-users-gear"></i>
                                     <span>User Management</span>
@@ -495,7 +567,8 @@
                                     <p>Manage fleet inventory, details, and active statuses.</p>
                                 </div>
                                 <div class="page-actions">
-                                    <button class="btn btn-primary"><i class="fa-solid fa-plus"></i> Register
+                                    <button class="btn btn-primary" onclick="openRegisterVehicleModal()"><i
+                                            class="fa-solid fa-plus"></i> Register
                                         Vehicle</button>
                                 </div>
                             </div>
@@ -527,71 +600,11 @@
                                                 <th class="text-right">Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody id="vehicles-table-body">
                                             <tr>
-                                                <td>
-                                                    <strong>TRK-8492</strong><br>
-                                                    <span class="text-muted" style="font-size: 0.75rem;">2022 Volvo VNL
-                                                        860</span>
-                                                </td>
-                                                <td>Heavy Duty (Class 8)</td>
-                                                <td>142,500 mi</td>
-                                                <td>
-                                                    <label class="toggle-switch">
-                                                        <input type="checkbox" checked>
-                                                        <span class="toggle-slider"></span>
-                                                    </label>
-                                                </td>
-                                                <td><span class="badge badge-success">Active</span></td>
-                                                <td class="text-right">
-                                                    <button class="table-action-dots"><i
-                                                            class="fa-solid fa-pen-to-square"></i></button>
-                                                    <button class="table-action-dots text-danger"><i
-                                                            class="fa-solid fa-trash"></i></button>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <strong>VAN-1044</strong><br>
-                                                    <span class="text-muted" style="font-size: 0.75rem;">2023 Ford
-                                                        Transit</span>
-                                                </td>
-                                                <td>Cargo Van (Class 2)</td>
-                                                <td>28,400 mi</td>
-                                                <td>
-                                                    <label class="toggle-switch">
-                                                        <input type="checkbox">
-                                                        <span class="toggle-slider"></span>
-                                                    </label>
-                                                </td>
-                                                <td><span class="badge badge-danger">In Shop</span></td>
-                                                <td class="text-right">
-                                                    <button class="table-action-dots"><i
-                                                            class="fa-solid fa-pen-to-square"></i></button>
-                                                    <button class="table-action-dots text-danger"><i
-                                                            class="fa-solid fa-trash"></i></button>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <strong>TRK-7731</strong><br>
-                                                    <span class="text-muted" style="font-size: 0.75rem;">2021
-                                                        Freightliner Cascadia</span>
-                                                </td>
-                                                <td>Heavy Duty (Class 8)</td>
-                                                <td>210,000 mi</td>
-                                                <td>
-                                                    <label class="toggle-switch">
-                                                        <input type="checkbox" checked>
-                                                        <span class="toggle-slider"></span>
-                                                    </label>
-                                                </td>
-                                                <td><span class="badge badge-warning">En Route</span></td>
-                                                <td class="text-right">
-                                                    <button class="table-action-dots"><i
-                                                            class="fa-solid fa-pen-to-square"></i></button>
-                                                    <button class="table-action-dots text-danger"><i
-                                                            class="fa-solid fa-trash"></i></button>
+                                                <td colspan="6"
+                                                    style="text-align:center; padding:2rem; color: var(--text-muted);">
+                                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading vehicles...
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -599,6 +612,88 @@
                                 </div>
                             </div>
                         </section>
+
+                        <!-- Register Vehicle Modal -->
+                        <div class="modal-overlay" id="register-vehicle-modal" style="display:none;">
+                            <div class="modal-card" style="width:560px;">
+                                <div class="modal-header">
+                                    <h3><i class="fa-solid fa-truck-medical"></i> Register New Vehicle</h3>
+                                    <button class="btn-icon" onclick="closeRegisterVehicleModal()">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <form onsubmit="registerVehicle(event)">
+                                    <div class="card-body">
+                                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                                            <div class="form-group">
+                                                <label>Vehicle ID</label>
+                                                <input type="text" class="form-control" id="reg-vehicle-id"
+                                                    placeholder="TRK-1234" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Year</label>
+                                                <input type="number" class="form-control" id="reg-year"
+                                                    placeholder="2024" min="1990" max="2030" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Make</label>
+                                                <input type="text" class="form-control" id="reg-make"
+                                                    placeholder="Volvo" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Model</label>
+                                                <input type="text" class="form-control" id="reg-model"
+                                                    placeholder="VNL 860" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Vehicle Type</label>
+                                                <select class="form-control" id="reg-type" required>
+                                                    <option value="Heavy Duty">Heavy Duty</option>
+                                                    <option value="Cargo Van">Cargo Van</option>
+                                                    <option value="Light Duty">Light Duty</option>
+                                                    <option value="Pickup Truck">Pickup Truck</option>
+                                                    <option value="Refrigerated">Refrigerated</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Vehicle Class</label>
+                                                <select class="form-control" id="reg-class" required>
+                                                    <option value="Class 1">Class 1</option>
+                                                    <option value="Class 2">Class 2</option>
+                                                    <option value="Class 3">Class 3</option>
+                                                    <option value="Class 4">Class 4</option>
+                                                    <option value="Class 5">Class 5</option>
+                                                    <option value="Class 6">Class 6</option>
+                                                    <option value="Class 7">Class 7</option>
+                                                    <option value="Class 8" selected>Class 8</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Current Mileage</label>
+                                                <input type="number" class="form-control" id="reg-mileage"
+                                                    placeholder="0" min="0" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>License Plate</label>
+                                                <input type="text" class="form-control" id="reg-plate"
+                                                    placeholder="IL-48921" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>VIN Number</label>
+                                            <input type="text" class="form-control" id="reg-vin"
+                                                placeholder="1FUJA6CG5CLBX1234" required>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-outline"
+                                            onclick="closeRegisterVehicleModal()">Cancel</button>
+                                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i>
+                                            Register Vehicle</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
 
                         <!-- 3. Trip Dispatcher -->
                         <section id="content-dispatch" class="page-section">
