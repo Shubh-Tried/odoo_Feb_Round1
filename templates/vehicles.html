@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Vehicle Registry{% endblock %}
+
+{% block content %}
+<section id="content-vehicles" class="page-section active">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Vehicle Registry</h1>
+            <p>Manage fleet inventory, details, and active statuses.</p>
+        </div>
+        <div class="page-actions">
+            <button class="btn btn-primary" onclick="openRegisterVehicleModal()">
+                <i class="fa-solid fa-plus"></i> Register Vehicle
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="filters-bar"
+            style="border:none; border-bottom:1px solid var(--border-light); margin:0; border-radius:0;">
+            <div class="search-bar" style="width:250px;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="vehicle-search" placeholder="Search by ID, Make, Model"
+                    oninput="filterVehiclesTable()">
+            </div>
+            <div class="filter-group ml-auto">
+                <select id="vehicle-status-filter" onchange="filterVehiclesTable()">
+                    <option value="">Status: All</option>
+                    <option value="Active">Active</option>
+                    <option value="En Route">En Route</option>
+                    <option value="In Shop">In Shop</option>
+                    <option value="Available">Available</option>
+                    <option value="Retired">Retired</option>
+                </select>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Vehicle Info</th>
+                        <th>Type / Class</th>
+                        <th>Current Mileage</th>
+                        <th>VIN</th>
+                        <th>Status</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="vehicles-table-body">
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Loading vehicles...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Register Vehicle Modal -->
+<div class="modal-overlay" id="register-vehicle-modal" style="display:none;">
+    <div class="modal-card" style="width:560px;">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-truck-medical"></i> Register New Vehicle</h3>
+            <button class="btn-icon" onclick="closeRegisterVehicleModal()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form onsubmit="registerVehicle(event)">
+            <div class="card-body">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                    <div class="form-group">
+                        <label>Vehicle ID</label>
+                        <input type="text" class="form-control" id="reg-vehicle-id" placeholder="TRK-1234" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Year</label>
+                        <input type="number" class="form-control" id="reg-year" placeholder="2024" min="1990" max="2030"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label>Make</label>
+                        <input type="text" class="form-control" id="reg-make" placeholder="Volvo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Model</label>
+                        <input type="text" class="form-control" id="reg-model" placeholder="VNL 860" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle Type</label>
+                        <select class="form-control" id="reg-type" required>
+                            <option value="Heavy Duty">Heavy Duty</option>
+                            <option value="Cargo Van">Cargo Van</option>
+                            <option value="Light Duty">Light Duty</option>
+                            <option value="Pickup Truck">Pickup Truck</option>
+                            <option value="Refrigerated">Refrigerated</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle Class</label>
+                        <select class="form-control" id="reg-class" required>
+                            <option value="Class 1">Class 1</option>
+                            <option value="Class 2">Class 2</option>
+                            <option value="Class 3">Class 3</option>
+                            <option value="Class 4">Class 4</option>
+                            <option value="Class 5">Class 5</option>
+                            <option value="Class 6">Class 6</option>
+                            <option value="Class 7">Class 7</option>
+                            <option value="Class 8" selected>Class 8</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Current Mileage</label>
+                        <input type="number" class="form-control" id="reg-mileage" placeholder="0" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>License Plate</label>
+                        <input type="text" class="form-control" id="reg-plate" placeholder="IL-48921" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>VIN Number</label>
+                    <input type="text" class="form-control" id="reg-vin" placeholder="1FUJA6CG5CLBX1234" required>
+                </div>
+                <div id="reg-vehicle-error"
+                    style="display:none; padding:0.75rem; border-radius:var(--radius-md); background:rgba(239,68,68,0.1); color:#EF4444; font-size:0.85rem; text-align:center; margin-top:0.5rem;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeRegisterVehicleModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Register
+                    Vehicle</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    let allVehicles = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadVehicles();
+        setActiveNavLink('vehicles');
+    });
+
+    function filterVehiclesTable() {
+        const search = document.getElementById('vehicle-search').value.toLowerCase();
+        const statusFilter = document.getElementById('vehicle-status-filter').value;
+        const filtered = allVehicles.filter(v => {
+            const matchesSearch = !search ||
+                (v.vehicle_id || '').toLowerCase().includes(search) ||
+                (v.make || '').toLowerCase().includes(search) ||
+                (v.model || '').toLowerCase().includes(search);
+            const matchesStatus = !statusFilter || v.status === statusFilter;
+            return matchesSearch && matchesStatus;
+        });
+        renderVehiclesTable(filtered);
+    }
+
+    function renderVehiclesTable(vehicles) {
+        const tbody = document.getElementById('vehicles-table-body');
+        if (!vehicles.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">No vehicles found.</td></tr>';
+            return;
+        }
+        const statusBadge = (s) => {
+            const map = {
+                'Active': 'badge-success',
+                'En Route': 'badge-warning',
+                'In Shop': 'badge-danger',
+                'Available': 'badge-info',
+                'Retired': 'badge-neutral',
+            };
+            return `<span class="badge ${map[s] || 'badge-neutral'}">${s}</span>`;
+        };
+        tbody.innerHTML = vehicles.map(v => `
+        <tr>
+            <td>
+                <div class="font-semibold">${v.vehicle_id}</div>
+                <div class="text-muted" style="font-size:0.8rem;">${v.year} ${v.make} ${v.model}</div>
+                <div class="text-muted" style="font-size:0.8rem;">${v.license_plate}</div>
+            </td>
+            <td>
+                <div>${v.vehicle_type}</div>
+                <div class="text-muted" style="font-size:0.8rem;">${v.vehicle_class}</div>
+            </td>
+            <td>${Number(v.mileage || 0).toLocaleString()} mi</td>
+            <td style="font-size:0.8rem; color:var(--text-muted);">${v.vin || '—'}</td>
+            <td>${statusBadge(v.status)}</td>
+            <td class="text-right">
+                <button class="btn btn-outline" style="padding:0.35rem 0.8rem; font-size:0.8rem;"
+                    onclick="deleteVehicleRow(${v.id}, '${v.vehicle_id}')">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    }
+</script>
+{% endblock %}

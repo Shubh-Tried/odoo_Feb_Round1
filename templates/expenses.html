@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Expense & Fuel Management{% endblock %}
+
+{% block content %}
+<section id="content-expenses" class="page-section active">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Expense &amp; Fuel Management</h1>
+            <p>Monitor operational costs and consolidate fuel entries.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-3">
+        <!-- Fuel Expense Form -->
+        <div class="card" style="grid-column:span 1;">
+            <div class="card-header">
+                <h3>Log Fuel Expense</h3>
+            </div>
+            <div class="card-body">
+                <form class="form-layout" onsubmit="submitFuelExpense(event)">
+                    <div class="form-group">
+                        <label>Vehicle</label>
+                        <select class="form-control" id="fuel-vehicle-select">
+                            <option value="" disabled selected>-- Loading vehicles... --</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Liters Purchased</label>
+                            <input type="number" class="form-control" id="fuel-liters" placeholder="0.00" min="0.01"
+                                step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Total Cost ($)</label>
+                            <input type="number" class="form-control" id="fuel-cost" placeholder="0.00" min="0.01"
+                                step="0.01" required>
+                        </div>
+                    </div>
+                    <div id="fuel-error"
+                        style="display:none; padding:0.75rem; border-radius:var(--radius-md); background:rgba(239,68,68,0.1); color:#EF4444; font-size:0.85rem;">
+                    </div>
+                    <div id="fuel-success"
+                        style="display:none; padding:0.75rem; border-radius:var(--radius-md); background:rgba(16,185,129,0.1); color:#10B981; font-size:0.85rem;">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block mt-2">
+                        <i class="fa-solid fa-plus"></i> Submit Expense
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Totals + Recent Transactions -->
+        <div class="card" style="grid-column:span 2;">
+            <div class="kpi-card bg-primary" style="border-radius:var(--radius-lg); color:white; margin-bottom:1.5rem;">
+                <div class="kpi-header">
+                    <div class="kpi-body">
+                        <h4 style="color:rgba(255,255,255,0.7);">Total Fuel Cost (All Time)</h4>
+                        <div class="value" style="color:white; font-size:2.5rem;">
+                            ${{ "%.2f"|format(total_cost) }}
+                        </div>
+                    </div>
+                    <div class="kpi-icon" style="background:rgba(255,255,255,0.2);">
+                        <i class="fa-solid fa-money-bill-wave"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <h3>Recent Fuel Transactions</h3>
+                    <button class="btn-ghost" onclick="loadExpenses()" style="padding:0;">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Vehicle</th>
+                                <th>Liters</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenses-table-body">
+                            <tr>
+                                <td colspan="4" style="text-align:center; padding:2rem; color:var(--text-muted);">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading transactions...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadFuelVehicles();
+        loadExpenses();
+        setActiveNavLink('expenses');
+    });
+
+    function loadFuelVehicles() {
+        fetch('/api/vehicles')
+            .then(r => r.json())
+            .then(vehicles => {
+                const sel = document.getElementById('fuel-vehicle-select');
+                if (!vehicles.length) {
+                    sel.innerHTML = '<option value="" disabled>No vehicles registered</option>';
+                    return;
+                }
+                sel.innerHTML = '<option value="" disabled selected>-- Select vehicle --</option>' +
+                    vehicles.map(v => `<option value="${v.id}">${v.vehicle_id} — ${v.make} ${v.model}</option>`).join('');
+            });
+    }
+
+    function loadExpenses() {
+        fetch('/api/expenses')
+            .then(r => r.json())
+            .then(logs => {
+                const tbody = document.getElementById('expenses-table-body');
+                if (!logs.length) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">No fuel expenses logged yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = logs.map(l => `
+                <tr>
+                    <td>${l.date}</td>
+                    <td>${l.vehicle_code}</td>
+                    <td>${Number(l.liters).toFixed(1)} L</td>
+                    <td><strong>$${Number(l.cost).toFixed(2)}</strong></td>
+                </tr>
+            `).join('');
+            });
+    }
+
+    function submitFuelExpense(e) {
+        e.preventDefault();
+        const vehicleDbId = document.getElementById('fuel-vehicle-select').value;
+        const liters = document.getElementById('fuel-liters').value;
+        const cost = document.getElementById('fuel-cost').value;
+
+        const errEl = document.getElementById('fuel-error');
+        const okEl = document.getElementById('fuel-success');
+        errEl.style.display = 'none';
+        okEl.style.display = 'none';
+
+        if (!vehicleDbId) {
+            errEl.textContent = 'Please select a vehicle.';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        fetch('/api/expenses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vehicle_db_id: parseInt(vehicleDbId), liters: parseFloat(liters), cost: parseFloat(cost) })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    okEl.textContent = 'Fuel expense logged!';
+                    okEl.style.display = 'block';
+                    e.target.reset();
+                    // Refresh total by reloading page after short delay
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    errEl.textContent = data.error || 'Failed to log expense.';
+                    errEl.style.display = 'block';
+                }
+            });
+    }
+</script>
+{% endblock %}

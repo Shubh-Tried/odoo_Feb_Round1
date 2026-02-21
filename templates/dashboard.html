@@ -1,21 +1,165 @@
 {% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}Command Center{% endblock %}
 
 {% block content %}
-<h1>Dashboard</h1>
+<section id="content-dashboard" class="page-section active">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Command Center</h1>
+            <p>Live visibility into global fleet operations.</p>
+        </div>
+        <div class="page-actions">
+            <button class="btn btn-primary" onclick="exportDashboardData()">
+                <i class="fa-solid fa-download"></i> Export Data
+            </button>
+        </div>
+    </div>
 
-<div class="chart-container">
-    <canvas id="utilizationChart"></canvas>
-</div>
+    <!-- KPIs from DB -->
+    <div class="grid grid-4 mb-4">
+        <div class="card kpi-card">
+            <div class="kpi-header">
+                <div class="kpi-body">
+                    <h4>Active Fleet</h4>
+                    <div class="value">{{ stats.active_vehicles }} <span>/ {{ stats.total_vehicles }}</span></div>
+                </div>
+                <div class="kpi-icon bg-info-light text-info"><i class="fa-solid fa-truck-moving"></i></div>
+            </div>
+            <div class="kpi-trend trend-up"><i class="fa-solid fa-arrow-trend-up"></i> Fleet status from DB</div>
+        </div>
+        <div class="card kpi-card">
+            <div class="kpi-header">
+                <div class="kpi-body">
+                    <h4>Maintenance Alerts</h4>
+                    <div class="value">{{ stats.maintenance_alerts }}</div>
+                </div>
+                <div class="kpi-icon bg-danger-light text-danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            </div>
+            <div class="kpi-trend trend-down"><i class="fa-solid fa-wrench"></i> Vehicles currently in shop</div>
+        </div>
+        <div class="card kpi-card">
+            <div class="kpi-header">
+                <div class="kpi-body">
+                    <h4>Drivers On Duty</h4>
+                    <div class="value">{{ stats.on_duty_drivers }} <span>/ {{ stats.total_drivers }}</span></div>
+                </div>
+                <div class="kpi-icon bg-success-light text-success"><i class="fa-solid fa-id-card"></i></div>
+            </div>
+            <div class="kpi-trend trend-up"><i class="fa-solid fa-arrow-trend-up"></i> Active driver count</div>
+        </div>
+        <div class="card kpi-card">
+            <div class="kpi-header">
+                <div class="kpi-body">
+                    <h4>Active Trips</h4>
+                    <div class="value">{{ stats.active_trips }}</div>
+                </div>
+                <div class="kpi-icon bg-warning-light text-warning"><i class="fa-solid fa-route"></i></div>
+            </div>
+            <div class="kpi-trend trend-flat"><i class="fa-solid fa-minus"></i> Currently dispatched</div>
+        </div>
+    </div>
 
-<div class="chart-container">
-    <canvas id="revenueChart"></canvas>
-</div>
+    <!-- Charts -->
+    <div class="grid grid-2 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3>Fleet Utilization (Last 7 Days)</h3>
+                <button class="btn-icon"><i class="fa-solid fa-ellipsis"></i></button>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="utilizationChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h3>Revenue vs Op Costs</h3>
+                <button class="btn-icon"><i class="fa-solid fa-ellipsis"></i></button>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Recent Activity (loaded from DB) -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Recent Activity Pulse</h3>
+            <a href="/dispatch" class="text-brand font-semibold">View All Trips</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Vehicle</th>
+                        <th>Driver</th>
+                        <th>Route</th>
+                        <th>Cargo (kg)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="dashboard-activity-body">
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding:2rem; color:var(--text-muted);">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Loading recent trips...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block page_scripts %}
 <script>
-const utilizationData = {{ utilization_data | tojson }};
-const revenueData = {{ revenue_data | tojson }};
-const costData = {{ cost_data | tojson }};
-</script>
+    const utilizationData = {{ utilization_data | tojson }};
+    const revenueData = {{ revenue_data | tojson }};
+    const costData = {{ cost_data | tojson }};
 
+    document.addEventListener('DOMContentLoaded', () => {
+        initDashboardCharts();
+        loadDashboardActivity();
+        setActiveNavLink('dashboard');
+    });
+
+    function loadDashboardActivity() {
+        fetch('/api/trips')
+            .then(r => r.json())
+            .then(trips => {
+                const tbody = document.getElementById('dashboard-activity-body');
+                if (!trips.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">No trips recorded yet.</td></tr>';
+                    return;
+                }
+                const statusMap = {
+                    'Dispatched': '<span class="badge badge-warning"><i class="fa-solid fa-route"></i> In Transit</span>',
+                    'Completed': '<span class="badge badge-success"><i class="fa-solid fa-check-circle"></i> Completed</span>',
+                    'Cancelled': '<span class="badge badge-danger"><i class="fa-solid fa-xmark"></i> Cancelled</span>',
+                    'Draft': '<span class="badge badge-neutral">Draft</span>',
+                };
+                tbody.innerHTML = trips.slice(0, 8).map(t => `
+                <tr>
+                    <td><a href="/vehicles" class="font-semibold">${t.vehicle_code}</a></td>
+                    <td>${t.driver_name}</td>
+                    <td>${t.origin} → ${t.destination}</td>
+                    <td>${t.cargo_weight}</td>
+                    <td>${statusMap[t.status] || t.status}</td>
+                </tr>
+            `).join('');
+            })
+            .catch(() => {
+                document.getElementById('dashboard-activity-body').innerHTML =
+                    '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">Could not load trips.</td></tr>';
+            });
+    }
+
+    function exportDashboardData() {
+        alert('Export functionality coming soon.');
+    }
+</script>
 {% endblock %}

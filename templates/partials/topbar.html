@@ -1,3 +1,93 @@
+<!-- TOPBAR -->
 <header class="topbar">
-    <h3>Fleet Management System</h3>
+    <div class="topbar-left">
+        <button class="btn-toggle-sidebar" onclick="toggleSidebar()">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search vehicles, trips or drivers...">
+        </div>
+    </div>
+    <div class="topbar-right">
+        <button class="btn-icon" onclick="window.location='/dispatch'" title="New Dispatch">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+
+        <!-- Notification Button + Dropdown -->
+        <div class="dropdown-wrapper" id="notif-wrapper">
+            <button class="btn-icon" onclick="toggleDropdown('notif-dropdown', event)" title="Notifications">
+                <i class="fa-regular fa-bell"></i>
+                <span class="badge-indicator"></span>
+            </button>
+            <div class="dropdown-panel" id="notif-dropdown">
+                <div class="dropdown-panel-header">
+                    <h4>Notifications</h4>
+                    <button class="btn-ghost" onclick="clearNotifications()"
+                        style="font-size:0.8rem; padding:0.25rem 0.5rem;">Mark all read</button>
+                </div>
+                <ul class="dropdown-list" id="notif-list">
+                    <li class="dropdown-item"
+                        style="padding:1.5rem; text-align:center; color:var(--text-muted); font-size:0.85rem;">
+                        <i class="fa-regular fa-bell-slash"></i> No notifications
+                    </li>
+                </ul>
+                <div class="dropdown-panel-footer">
+                    <a href="/dashboard">View All Activity</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Button + Dropdown -->
+        <div class="dropdown-wrapper" id="settings-wrapper">
+            <button class="btn-icon" onclick="toggleDropdown('settings-dropdown', event)" title="Settings">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+            <div class="dropdown-panel" id="settings-dropdown">
+                <div class="dropdown-panel-header">
+                    <h4>Settings</h4>
+                </div>
+                <ul class="dropdown-list settings-list">
+                    <li class="dropdown-item" onclick="toggleDarkMode()">
+                        <div class="dropdown-item-icon bg-info-light text-info"><i class="fa-solid fa-moon"></i></div>
+                        <div class="dropdown-item-content">
+                            <p><strong>Dark Mode</strong></p>
+                            <span>Toggle dark theme</span>
+                        </div>
+                        <label class="toggle-switch" style="margin-left:auto;">
+                            <input type="checkbox" id="dark-mode-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </li>
+                    <li class="dropdown-item">
+                        <div class="dropdown-item-icon bg-success-light text-success"><i
+                                class="fa-solid fa-language"></i></div>
+                        <div class="dropdown-item-content">
+                            <p><strong>Language</strong></p>
+                            <span>English (US)</span>
+                        </div>
+                    </li>
+                    <li class="dropdown-item" onclick="window.location='/drivers'; closeAllDropdowns();">
+                        <div class="dropdown-item-icon bg-warning-light text-warning"><i
+                                class="fa-solid fa-user-gear"></i></div>
+                        <div class="dropdown-item-content">
+                            <p><strong>My Profile</strong></p>
+                            <span>Manage account details</span>
+                        </div>
+                    </li>
+                    <li class="dropdown-item" style="cursor:pointer;">
+                        <div class="dropdown-item-icon bg-danger-light text-danger"><i
+                                class="fa-solid fa-circle-question"></i></div>
+                        <div class="dropdown-item-content">
+                            <p><strong>Help &amp; Support</strong></p>
+                            <span>Documentation &amp; FAQ</span>
+                        </div>
+                    </li>
+                </ul>
+                <div class="dropdown-panel-footer">
+                    <a href="#" onclick="logout(); closeAllDropdowns();">Sign Out</a>
+                </div>
+            </div>
+        </div>
+    </div>
 </header>

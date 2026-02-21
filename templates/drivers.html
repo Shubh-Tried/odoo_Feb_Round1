@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Driver Performance{% endblock %}
+
+{% block content %}
+<section id="content-drivers" class="page-section active">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Driver Performance</h1>
+            <p>Manage driver compliance, shift hours, and safety rankings.</p>
+        </div>
+    </div>
+
+    {% if drivers %}
+    <div class="grid grid-3">
+        {% for driver in drivers %}
+        <div class="card driver-card p-4">
+            <div class="driver-header">
+                <img src="{{ driver.avatar or 'https://i.pravatar.cc/150?img=' ~ loop.index }}" alt="{{ driver.name }}"
+                    class="driver-avatar">
+                <div class="driver-info">
+                    <h3>{{ driver.name }}</h3>
+                    {% if driver.status == 'On Duty' %}
+                    <span class="badge badge-success">On Duty</span>
+                    {% elif driver.status == 'On Trip' %}
+                    <span class="badge badge-warning">On Trip</span>
+                    {% elif driver.status == 'Off Duty' %}
+                    <span class="badge badge-neutral">Off Duty</span>
+                    {% else %}
+                    <span class="badge badge-danger">{{ driver.status }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="driver-metrics">
+                <div class="metric-box">
+                    <span>Safety Score</span>
+                    <strong>{{ driver.safety_score }}%</strong>
+                </div>
+                <div class="metric-box">
+                    <span>Hours Available</span>
+                    <strong>{{ driver.hours_available }}h</strong>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="d-flex justify-between align-center mb-2">
+                    <span style="font-size:0.85rem; font-weight:500;">CDL License</span>
+                    <span style="font-size:0.8rem; color:var(--text-muted);">
+                        {{ driver.license_category }} — Exp: {{ driver.license_expiry_date }}
+                    </span>
+                </div>
+                <div class="d-flex justify-between align-center mb-2">
+                    <span style="font-size:0.85rem; font-weight:500;">License #</span>
+                    <span style="font-size:0.8rem; color:var(--text-muted);">{{ driver.license_number }}</span>
+                </div>
+                <div class="d-flex justify-between align-center border-top pt-3 mt-3 border-light">
+                    <span style="font-weight:500;">Duty Status</span>
+                    <span
+                        class="badge {% if driver.status in ['On Duty', 'On Trip'] %}badge-success{% else %}badge-neutral{% endif %}">
+                        {{ driver.status }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state card" style="padding:3rem; text-align:center; max-width:500px; margin:2rem auto;">
+        <i class="fa-solid fa-id-card" style="font-size:3rem; color:var(--text-muted); margin-bottom:1rem;"></i>
+        <h3>No Drivers Registered</h3>
+        <p style="color:var(--text-muted); margin-top:0.5rem;">
+            No drivers are currently in the system. Driver records will appear here once added to the database.
+        </p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        setActiveNavLink('drivers');
+    });
+</script>
+{% endblock %}

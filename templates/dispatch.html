@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Trip Dispatcher{% endblock %}
+
+{% block content %}
+<section id="content-dispatch" class="page-section active">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Trip Dispatcher</h1>
+            <p>Plan, assign, and monitor cargo and routes.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-2 mb-4">
+        <!-- Dispatch Form -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Create New Dispatch</h3>
+            </div>
+            <div class="card-body">
+                <form class="form-layout" onsubmit="submitDispatch(event)">
+                    <div class="form-group">
+                        <label>1. Select Vehicle</label>
+                        <select class="form-control" id="dispatch-vehicle-select">
+                            <option value="" selected disabled>-- Loading vehicles... --</option>
+                        </select>
+                        <div class="form-hint text-muted" id="dispatch-vehicle-hint"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>2. Assign Driver</label>
+                        <select class="form-control" id="dispatch-driver-select">
+                            <option value="" selected disabled>-- Loading drivers... --</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cargo Type / Description</label>
+                            <input type="text" class="form-control" id="dispatch-cargo-type"
+                                placeholder="e.g. Palletized Electronics">
+                        </div>
+                        <div class="form-group">
+                            <label>Cargo Weight (kg)</label>
+                            <input type="number" class="form-control" id="dispatch-cargo-weight" placeholder="1000"
+                                min="1" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Origin</label>
+                            <input type="text" class="form-control" id="dispatch-origin" placeholder="City, State"
+                                required>
+                        </div>
+                        <div class="form-group">
+                            <label>Destination</label>
+                            <input type="text" class="form-control" id="dispatch-destination" placeholder="City, State"
+                                required>
+                        </div>
+                    </div>
+                    <div id="dispatch-error"
+                        style="display:none; padding:0.75rem; border-radius:var(--radius-md); background:rgba(239,68,68,0.1); color:#EF4444; font-size:0.85rem; margin-bottom:0.5rem;">
+                    </div>
+                    <div id="dispatch-success"
+                        style="display:none; padding:0.75rem; border-radius:var(--radius-md); background:rgba(16,185,129,0.1); color:#10B981; font-size:0.85rem; margin-bottom:0.5rem;">
+                    </div>
+                    <div class="d-flex justify-between align-center mt-2">
+                        <span class="text-muted" style="font-size:0.85rem;"><i class="fa-solid fa-circle-info"></i> Both
+                            vehicle and driver required</span>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fa-solid fa-paper-plane"></i> Dispatch Now
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Active Dispatches -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Active &amp; Recent Trips</h3>
+                <button class="btn-ghost" style="padding:0;" onclick="loadDispatchList()">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+            <ul id="dispatch-list" style="padding:0; margin:0; list-style:none;">
+                <li style="padding:1.5rem; text-align:center; color:var(--text-muted); font-size:0.9rem;">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Loading trips...
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    let dispatchVehicles = [];
+    let dispatchDrivers = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDispatchSelects();
+        loadDispatchList();
+        setActiveNavLink('dispatch');
+    });
+
+    function loadDispatchSelects() {
+        fetch('/api/vehicles')
+            .then(r => r.json())
+            .then(vehicles => {
+                dispatchVehicles = vehicles;
+                const sel = document.getElementById('dispatch-vehicle-select');
+                const available = vehicles.filter(v => v.status === 'Available' || v.status === 'Active');
+                sel.innerHTML = '<option value="" disabled selected>-- Select available vehicle --</option>' +
+                    available.map(v => `<option value="${v.id}">${v.vehicle_id} — ${v.make} ${v.model} (${v.status})</option>`).join('');
+                document.getElementById('dispatch-vehicle-hint').textContent =
+                    `${available.length} vehicle(s) available`;
+            });
+
+        fetch('/api/drivers')
+            .then(r => r.json())
+            .then(drivers => {
+                dispatchDrivers = drivers;
+                const sel = document.getElementById('dispatch-driver-select');
+                const available = drivers.filter(d => d.status === 'On Duty' || d.status === 'Off Duty');
+                sel.innerHTML = '<option value="" disabled selected>-- Select eligible driver --</option>' +
+                    available.map(d => `<option value="${d.id}">${d.name} — ${d.status} (${d.hours_available}h available)</option>`).join('');
+            });
+    }
+
+    function loadDispatchList() {
+        fetch('/api/trips')
+            .then(r => r.json())
+            .then(trips => {
+                const list = document.getElementById('dispatch-list');
+                if (!trips.length) {
+                    list.innerHTML = '<li style="padding:1.5rem; text-align:center; color:var(--text-muted);">No trips yet. Create the first dispatch!</li>';
+                    return;
+                }
+                const statusMap = {
+                    'Dispatched': 'badge-warning',
+                    'Completed': 'badge-success',
+                    'Cancelled': 'badge-danger',
+                    'Draft': 'badge-neutral',
+                };
+                list.innerHTML = trips.slice(0, 6).map(t => `
+                <li style="padding:1.2rem; border-bottom:1px solid var(--border-light); display:flex; align-items:center; justify-content:space-between;">
+                    <div>
+                        <strong>TRP-${String(t.id).padStart(4, '0')}</strong>
+                        <span class="badge ${statusMap[t.status] || 'badge-neutral'} ml-2">${t.status}</span>
+                        <div class="text-muted" style="font-size:0.8rem; margin-top:0.2rem;">${t.origin} → ${t.destination}</div>
+                        <div style="font-size:0.8rem; margin-top:0.2rem;">
+                            <i class="fa-solid fa-user"></i> ${t.driver_name} | 🚚 ${t.vehicle_code}
+                        </div>
+                    </div>
+                    <span class="text-muted" style="font-size:0.75rem;">${t.cargo_weight} kg</span>
+                </li>
+            `).join('');
+            })
+            .catch(() => {
+                document.getElementById('dispatch-list').innerHTML =
+                    '<li style="padding:1.5rem; text-align:center; color:var(--text-muted);">Could not load trips.</li>';
+            });
+    }
+
+    function submitDispatch(e) {
+        e.preventDefault();
+        const vehicleDbId = document.getElementById('dispatch-vehicle-select').value;
+        const driverId = document.getElementById('dispatch-driver-select').value;
+        const cargoWeight = document.getElementById('dispatch-cargo-weight').value;
+        const origin = document.getElementById('dispatch-origin').value;
+        const destination = document.getElementById('dispatch-destination').value;
+
+        const errEl = document.getElementById('dispatch-error');
+        const okEl = document.getElementById('dispatch-success');
+        errEl.style.display = 'none';
+        okEl.style.display = 'none';
+
+        if (!vehicleDbId || !driverId) {
+            errEl.textContent = 'Please select both a vehicle and a driver.';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        fetch('/api/trips', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                vehicle_db_id: parseInt(vehicleDbId),
+                driver_id: parseInt(driverId),
+                cargo_weight: parseFloat(cargoWeight),
+                origin, destination
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    okEl.textContent = `Trip TRP-${String(data.trip_id).padStart(4, '0')} dispatched successfully!`;
+                    okEl.style.display = 'block';
+                    e.target.reset();
+                    loadDispatchList();
+                    loadDispatchSelects();
+                } else {
+                    errEl.textContent = data.error || 'Dispatch failed.';
+                    errEl.style.display = 'block';
+                }
+            })
+            .catch(() => {
+                errEl.textContent = 'Network error. Please try again.';
+                errEl.style.display = 'block';
+            });
+    }
+</script>
+{% endblock %}
